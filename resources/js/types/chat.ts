@@ -38,6 +38,7 @@ export interface Conversation {
     // Related data
     users?: User[];
     last_message?: Message;
+    other_user?: User; // For 1-on-1 chats (the other participant)
     unread_count?: number;
 }
 

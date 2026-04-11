@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, CheckCheck, AlertCircle } from 'lucide-react';
-import type { Message, User } from '../types/chat';
+import type { Message, User } from '@/types/chat';
+import type { Variants } from 'framer-motion';
 
-interface MessageBubbleProps {
+export interface MessageBubbleProps {
     message: Message;
     currentUser: User;
     isConsecutive?: boolean;
@@ -15,12 +16,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     isConsecutive 
 }) => {
     const isSent = message.user_id === currentUser.id;
-    const timestamp = new Date(message.created_at).toLocaleTimeString('en-US', {
+    const timestamp = message.created_at ? new Date(message.created_at).toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
-    });
+    }) : '';
 
-    const containerVariants = {
+    const containerVariants: Variants = {
         hidden: { opacity: 0, y: 10 },
         visible: {
             opacity: 1,
@@ -119,7 +120,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     );
 };
 
-interface MessageGroupProps {
+export interface MessageGroupProps {
     messages: Message[];
     currentUser: User;
 }
@@ -137,8 +138,9 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({ messages, currentUse
                 const isConsecutive = 
                     idx > 0 && 
                     messages[idx - 1].user_id === message.user_id &&
-                    new Date(message.created_at).getTime() - 
-                    new Date(messages[idx - 1].created_at).getTime() < 60000; // 1 minute
+                    !!(message.created_at && messages[idx - 1].created_at &&
+                    (new Date(message.created_at).getTime() - 
+                    new Date(messages[idx - 1].created_at!).getTime() < 60000)); // 1 minute
 
                 return (
                     <MessageBubble
@@ -153,7 +155,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({ messages, currentUse
     );
 };
 
-interface DateSeparatorProps {
+export interface DateSeparatorProps {
     date: Date;
 }
 

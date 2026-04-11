@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Send, Paperclip, Smile, Mic } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-interface MessageInputProps {
+export interface MessageInputProps {
     onSendMessage: (message: string, file?: File) => void;
     disabled?: boolean;
     isLoading?: boolean;

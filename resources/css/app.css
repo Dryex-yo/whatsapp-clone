@@ -49,9 +49,13 @@
    ============================================================================ */
 
 @layer components {
-    .btn-ghost-primary @apply transition-all duration-200 ease-out hover:scale-105 active:scale-95;
+    .btn-ghost-primary {
+        @apply transition-all duration-200 ease-out hover:scale-105 active:scale-95;
+    }
     
-    .message-bubble-enter @apply animate-in fade-in slide-in-from-bottom-2 duration-300;
+    .message-bubble-enter {
+        @apply animate-in fade-in slide-in-from-bottom-2 duration-300;
+    }
 }
 
 /* ============================================================================

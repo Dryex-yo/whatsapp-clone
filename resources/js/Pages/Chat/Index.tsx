@@ -1,65 +1,94 @@
 import React, { useState, useCallback } from 'react';
+import { usePage, router } from '@inertiajs/react';
 import { motion } from 'framer-motion';
-import { ConversationSidebar } from '../Components/Chat/ConversationSidebar';
-import { ChatWindow } from '../Components/Chat/ChatWindow';
-import type { Conversation, Message, User } from '../types/chat';
+import { ConversationSidebar } from '@/Components/Chat/ConversationSidebar';
+import { ChatWindow } from '@/Components/Chat/ChatWindow';
+import type { Conversation, Message, User } from '@/types/chat';
+import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
-interface ChatLayoutProps {
+interface PageProps extends InertiaPageProps {
+    auth: { user: User };
     currentUser: User;
-    conversations?: Conversation[];
-    onSelectConversation?: (id: number) => void;
-    onSendMessage?: (conversationId: number, message: string, file?: File) => Promise<Message>;
+    conversations: Conversation[];
 }
 
-export const ChatLayout: React.FC<ChatLayoutProps> = ({
-    currentUser,
-    conversations = [],
-    onSelectConversation,
-    onSendMessage,
-}) => {
-    const [activeConversationId, setActiveConversationId] = useState<number | undefined>();
-    const [filteredConversations, setFilteredConversations] = useState(conversations);
-    const [isSearching, setIsSearching] = useState(false);
+/**
+ * Chat Index Page
+ * 
+ * Displays list of conversations with sidebar and empty chat window
+ * Allows user to select a conversation to view details
+ */
+export default function ChatIndexPage() {
+    const { props } = usePage<PageProps>();
+    const { currentUser, conversations: initialConversations } = props;
 
-    const activeConversation = conversations.find(
+    // Ensure conversations is always an array
+    const conversationsArray = Array.isArray(initialConversations) ? initialConversations : [];
+
+    const [filteredConversations, setFilteredConversations] = useState<Conversation[]>(conversationsArray);
+    const [activeConversationId, setActiveConversationId] = useState<number | undefined>();
+
+    const activeConversation = filteredConversations.find(
         (conv) => conv.id === activeConversationId
     );
 
     const handleSelectConversation = useCallback((id: number) => {
         setActiveConversationId(id);
-        onSelectConversation?.(id);
-    }, [onSelectConversation]);
+        // Navigate to show page
+        router.get(`/chat/${id}`);
+    }, []);
 
     const handleSearchChange = useCallback((query: string) => {
-        setIsSearching(query.length > 0);
-        
         if (!query.trim()) {
-            setFilteredConversations(conversations);
+            setFilteredConversations(conversationsArray);
             return;
         }
 
         const lowerQuery = query.toLowerCase();
-        const filtered = conversations.filter((conv) => {
-            const name = (conv.name || conv.participants?.[0]?.name || '').toLowerCase();
+        const filtered = conversationsArray.filter((conv) => {
+            const name = (conv.name || conv.other_user?.name || '').toLowerCase();
             const lastMessage = (conv.last_message?.body || '').toLowerCase();
-            
+
             return name.includes(lowerQuery) || lastMessage.includes(lowerQuery);
         });
 
         setFilteredConversations(filtered);
-    }, [conversations]);
+    }, [conversationsArray]);
 
     const handleSendMessage = useCallback(
         async (message: string, file?: File) => {
-            if (!activeConversationId || !onSendMessage) return;
+            if (!activeConversationId) return;
+
+            const formData = new FormData();
+            formData.append('body', message);
+            if (file) {
+                formData.append('file', file);
+            }
 
             try {
-                await onSendMessage(activeConversationId, message, file);
+                const response = await fetch(
+                    `/api/conversations/${activeConversationId}/messages`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: formData,
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Failed to send message');
+                }
+
+                // Message sent successfully - update conversation's last message
+                const data = await response.json();
+                console.log('Message sent:', data);
             } catch (error) {
                 console.error('Failed to send message:', error);
             }
         },
-        [activeConversationId, onSendMessage]
+        [activeConversationId]
     );
 
     return (
@@ -68,8 +97,8 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
             animate={{ opacity: 1 }}
             className="flex h-screen bg-[#111b21] overflow-hidden"
         >
-            {/* Sidebar - Desktop */}
-            <div className="hidden md:flex md:flex-col">
+            {/* Sidebar - Hidden on mobile */}
+            <div className="hidden md:flex md:flex-col w-[400px]">
                 <ConversationSidebar
                     conversations={filteredConversations}
                     activeConversationId={activeConversationId}
@@ -79,37 +108,28 @@ export const ChatLayout: React.FC<ChatLayoutProps> = ({
                 />
             </div>
 
-            {/* Chat Window - Desktop */}
+            {/* Chat Window - Desktop only, empty state on mobile */}
             <div className="hidden md:flex md:flex-col flex-1">
                 <ChatWindow
-                    conversation={activeConversation}
+                    conversation={activeConversation || null}
                     currentUser={currentUser}
-                    messages={activeConversation?.last_message ? [activeConversation.last_message] : []}
+                    messages={[]}
+                    isLoading={false}
                     onSendMessage={handleSendMessage}
                 />
             </div>
 
-            {/* Mobile View - Show sidebar by default, chat on selection */}
+            {/* Mobile - Show sidebar by default */}
             <div className="w-full md:hidden">
-                {!activeConversationId ? (
-                    <ConversationSidebar
-                        conversations={filteredConversations}
-                        activeConversationId={activeConversationId}
-                        currentUser={currentUser}
-                        onSelectConversation={handleSelectConversation}
-                        onSearchChange={handleSearchChange}
-                    />
-                ) : (
-                    <ChatWindow
-                        conversation={activeConversation}
-                        currentUser={currentUser}
-                        messages={activeConversation?.last_message ? [activeConversation.last_message] : []}
-                        onSendMessage={handleSendMessage}
-                    />
-                )}
+                <ConversationSidebar
+                    conversations={filteredConversations}
+                    activeConversationId={activeConversationId}
+                    currentUser={currentUser}
+                    onSelectConversation={handleSelectConversation}
+                    onSearchChange={handleSearchChange}
+                />
             </div>
         </motion.div>
     );
-};
+}
 
-export default ChatLayout;

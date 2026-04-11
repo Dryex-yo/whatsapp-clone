@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Search, MoreVertical, MessageSquare, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
-import type { Conversation, User } from '../types/chat';
+import type { Conversation, User } from '@/types/chat';
 
-interface ConversationItemProps {
+export interface ConversationItemProps {
     conversation: Conversation;
     isActive?: boolean;
     onSelect: (id: number) => void;
@@ -14,7 +14,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
     isActive, 
     onSelect 
 }) => {
-    const displayName = conversation.name || conversation.participants?.[0]?.name || 'Unknown';
+    const displayName = conversation.name || conversation.other_user?.name || conversation.users?.[0]?.name || 'Unknown';
     const hasUnread = (conversation.unread_count ?? 0) > 0;
     
     return (
@@ -29,7 +29,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
             {/* Avatar */}
             <div className="w-12 h-12 rounded-full flex-shrink-0 mr-3 overflow-hidden shadow-md">
                 <img 
-                    src={conversation.participants?.[0]?.avatar || `https://ui-avatars.com/api/?name=${displayName}`}
+                    src={conversation.avatar || conversation.other_user?.avatar || `https://ui-avatars.com/api/?name=${displayName}`}
                     alt={displayName}
                     className="w-full h-full object-cover"
                 />
@@ -73,7 +73,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
     );
 };
 
-interface ConversationSidebarProps {
+export interface ConversationSidebarProps {
     conversations: Conversation[];
     activeConversationId?: number;
     currentUser: User;

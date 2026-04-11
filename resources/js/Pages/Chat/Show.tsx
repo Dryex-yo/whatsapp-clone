@@ -1,47 +1,63 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { usePage } from '@inertiajs/react';
-import { ChatLayout } from '../Layouts/ChatLayout';
-import type { Conversation, User, Message } from '../types/chat';
+import { usePage, router } from '@inertiajs/react';
+import { motion } from 'framer-motion';
+import { ConversationSidebar } from '@/Components/Chat/ConversationSidebar';
+import { ChatWindow } from '@/Components/Chat/ChatWindow';
+import type { Conversation, Message, User } from '@/types/chat';
+import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
-/**
- * Main Chat Page Component
- * 
- * Integrates with Inertia.js and backend API
- * Handles real-time WebSocket connections
- * Manages chat state and message flow
- */
-interface PageProps {
+interface PageProps extends InertiaPageProps {
+    auth: { user: User };
     currentUser: User;
     conversations: Conversation[];
+    activeConversation: Conversation;
+    messages: Message[];
+    pagination: {
+        current_page: number;
+        last_page: number;
+        total: number;
+        per_page: number;
+    };
 }
 
-export default function ChatPage() {
+/**
+ * Chat Show Page
+ * 
+ * Displays a specific conversation with full message history
+ * Supports pagination, message sending, and real-time updates
+ */
+export default function ChatShowPage() {
     const { props } = usePage<PageProps>();
-    const { currentUser, conversations: initialConversations } = props;
+    const { currentUser, conversations: initialConversations, activeConversation, messages: initialMessages } = props;
 
-    const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
-    const [activeConversationId, setActiveConversationId] = useState<number | undefined>();
-    const [messages, setMessages] = useState<Message[]>([]);
+    // Ensure data is always arrays
+    const conversationsArray = Array.isArray(initialConversations) ? initialConversations : [];
+    const messagesArray = Array.isArray(initialMessages) ? initialMessages : [];
+
+    const [filteredConversations, setFilteredConversations] = useState<Conversation[]>(conversationsArray);
+    const [messages, setMessages] = useState<Message[]>(messagesArray);
     const [isLoading, setIsLoading] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
 
-    // Setup WebSocket connection for real-time updates
+    // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
-        if (!activeConversationId) return;
+        const chatContainer = document.querySelector('[data-chat-scroll]');
+        if (chatContainer && messagesArray.length > 0) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    }, [messages, messagesArray.length]);
+
+    // Setup WebSocket connection for real-time updates (optional)
+    useEffect(() => {
+        if (!activeConversation?.id) return;
 
         // Example WebSocket setup (with Laravel Reverb)
-        // const channel = Echo.private(`conversation.${activeConversationId}`)
+        // Uncomment when ready to implement
+        // const channel = Echo.private(`conversation.${activeConversation.id}`)
         //     .listen('MessageSent', (data: Message) => {
         //         setMessages(prev => [...prev, data]);
-        //         // Update conversation's last message
-        //         setConversations(prevConvs => 
-        //             prevConvs.map(conv => 
-        //                 conv.id === activeConversationId
-        //                     ? { ...conv, last_message: data }
-        //                     : conv
-        //             )
-        //         );
         //     })
         //     .listenForWhisper('typing', (data: { user_id: number }) => {
         //         if (data.user_id !== currentUser.id) {
@@ -53,124 +69,143 @@ export default function ChatPage() {
         // return () => {
         //     channel.leave();
         // };
-    }, [activeConversationId, currentUser.id]);
+    }, [activeConversation?.id, currentUser.id]);
 
-    // Fetch messages for selected conversation
-    const fetchMessages = useCallback(async (conversationId: number) => {
-        setIsLoading(true);
-        try {
-            const response = await fetch(`/api/conversations/${conversationId}/messages?page=1&per_page=50`);
-            const data = await response.json();
-            setMessages(data.data || []);
-        } catch (error) {
-            console.error('Failed to fetch messages:', error);
-        } finally {
-            setIsLoading(false);
-        }
+    const handleSelectConversation = useCallback((id: number) => {
+        router.get(`/chat/${id}`);
     }, []);
 
-    // Handle conversation selection
-    const handleSelectConversation = useCallback((id: number) => {
-        setActiveConversationId(id);
-        fetchMessages(id);
-    }, [fetchMessages]);
+    const handleSearchChange = useCallback((query: string) => {
+        if (!query.trim()) {
+            setFilteredConversations(conversationsArray);
+            return;
+        }
 
-    // Handle sending message
+        const lowerQuery = query.toLowerCase();
+        const filtered = conversationsArray.filter((conv) => {
+            const name = (conv.name || conv.other_user?.name || '').toLowerCase();
+            const lastMessage = (conv.last_message?.body || '').toLowerCase();
+
+            return name.includes(lowerQuery) || lastMessage.includes(lowerQuery);
+        });
+
+        setFilteredConversations(filtered);
+    }, [conversationsArray]);
+
     const handleSendMessage = useCallback(
-        async (message: string, file?: File) => {
-            if (!activeConversationId) return;
+        async (body: string, file?: File) => {
+            if (!activeConversation?.id || !body.trim()) return;
 
             setIsSending(true);
-            try {
-                const formData = new FormData();
-                formData.append('body', message);
-                if (file) {
-                    formData.append('file', file);
-                }
+            const formData = new FormData();
+            formData.append('body', body);
+            if (file) {
+                formData.append('file', file);
+            }
 
+            try {
                 const response = await fetch(
-                    `/api/conversations/${activeConversationId}/messages`,
+                    `/api/conversations/${activeConversation.id}/messages`,
                     {
                         method: 'POST',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
-                            // Add CSRF token if needed
                         },
                         body: formData,
                     }
                 );
 
                 if (!response.ok) {
-                    throw new Error('Failed to send message');
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to send message');
                 }
 
-                const data = await response.json();
-                
+                const newMessage = await response.json();
+
                 // Add new message to local state
-                if (data.success && data.data) {
-                    const newMessage: Message = {
-                        id: data.data.id,
-                        conversation_id: activeConversationId,
-                        user_id: currentUser.id,
-                        body: message,
-                        type: file ? 'file' : 'text',
-                        read_at: null,
-                        created_at: new Date().toISOString(),
-                        user: currentUser,
-                    };
-                    
-                    setMessages(prev => [...prev, newMessage]);
-                }
+                setMessages((prev) => [...prev, newMessage]);
+
+                // Update conversation's last message in sidebar
+                setFilteredConversations((prev) =>
+                    prev.map((conv) =>
+                        conv.id === activeConversation.id
+                            ? { ...conv, last_message: newMessage }
+                            : conv
+                    )
+                );
             } catch (error) {
                 console.error('Failed to send message:', error);
-                // Show error toast here
+                // You can add a toast notification here
             } finally {
                 setIsSending(false);
             }
         },
-        [activeConversationId, currentUser]
+        [activeConversation?.id]
     );
 
-    // Handle search
-    const handleSearchChange = useCallback((query: string) => {
-        if (!query.trim()) {
-            setConversations(initialConversations);
-            return;
+    const handleLoadMore = useCallback(async () => {
+        if (currentPage >= props.pagination.last_page) return;
+
+        setIsLoading(true);
+        try {
+            const nextPage = currentPage + 1;
+            const response = await fetch(
+                `/api/conversations/${activeConversation.id}/messages?page=${nextPage}&per_page=50`
+            );
+
+            if (!response.ok) throw new Error('Failed to load more messages');
+
+            const data = await response.json();
+            setMessages((prev) => [...data.data, ...prev]);
+            setCurrentPage(nextPage);
+        } catch (error) {
+            console.error('Failed to load more messages:', error);
+        } finally {
+            setIsLoading(false);
         }
-
-        const filtered = initialConversations.filter(conv => {
-            const name = (conv.name || conv.participants?.[0]?.name || '').toLowerCase();
-            const body = (conv.last_message?.body || '').toLowerCase();
-            const searchTerm = query.toLowerCase();
-            return name.includes(searchTerm) || body.includes(searchTerm);
-        });
-
-        setConversations(filtered);
-    }, [initialConversations]);
+    }, [currentPage, props.pagination.last_page, activeConversation.id]);
 
     return (
-        <div className="h-screen w-full overflow-hidden">
-            <ChatLayout
-                currentUser={currentUser}
-                conversations={conversations}
-                onSelectConversation={handleSelectConversation}
-                onSendMessage={handleSendMessage}
-            />
-        </div>
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex h-screen bg-[#111b21] overflow-hidden"
+        >
+            {/* Sidebar - Hidden on mobile */}
+            <div className="hidden md:flex md:flex-col w-[400px]">
+                <ConversationSidebar
+                    conversations={filteredConversations}
+                    activeConversationId={activeConversation.id}
+                    currentUser={currentUser}
+                    onSelectConversation={handleSelectConversation}
+                    onSearchChange={handleSearchChange}
+                />
+            </div>
+
+            {/* Chat Window - Main area */}
+            <div className="flex-1 flex flex-col md:min-w-0">
+                <ChatWindow
+                    conversation={activeConversation}
+                    currentUser={currentUser}
+                    messages={messages}
+                    isLoading={isLoading}
+                    onSendMessage={handleSendMessage}
+                    isTyping={isTyping}
+                />
+            </div>
+
+            {/* Mobile - Show back to sidebar button */}
+            <div className="md:hidden absolute top-4 left-4 z-10">
+                <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => router.get('/chat')}
+                    className="p-2 hover:bg-[#202c33] rounded-full text-white"
+                    title="Back to conversations"
+                >
+                    ← Back
+                </motion.button>
+            </div>
+        </motion.div>
     );
 }
-
-/**
- * Example of getting page props from Inertia route
- * 
- * // In your route (routes/web.php):
- * Route::get('/chat', function() {
- *     return inertia('Chat/Index', [
- *         'currentUser' => auth()->user(),
- *         'conversations' => auth()->user()->conversations()
- *             ->with(['users', 'lastMessage.sender'])
- *             ->latest('updated_at')
- *             ->get(),
- *     ]);
- * });
- */

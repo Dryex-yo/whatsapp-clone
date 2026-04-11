@@ -4,8 +4,8 @@
  * Export all chat-related components for easy importing
  */
 
-export { ConversationSidebar } from './ConversationSidebar';
-export type { } from './ConversationSidebar';
+export { ConversationSidebar, ConversationItem } from './ConversationSidebar';
+export type { ConversationSidebarProps, ConversationItemProps } from './ConversationSidebar';
 
 export { ChatHeader, ChatHeaderOnly } from './ChatHeader';
 export type { ChatHeaderProps } from './ChatHeader';

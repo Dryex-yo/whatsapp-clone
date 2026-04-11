@@ -4,9 +4,9 @@ import { MessageSquare } from 'lucide-react';
 import { ChatHeader, ChatHeaderOnly } from './ChatHeader';
 import { MessageBubble, MessageGroup, DateSeparator, TypingIndicator } from './MessageBubble';
 import { MessageInput } from './MessageInput';
-import type { Conversation, Message, User } from '../types/chat';
+import type { Conversation, Message, User } from '@/types/chat';
 
-interface ChatWindowProps {
+export interface ChatWindowProps {
     conversation?: Conversation | null;
     currentUser: User;
     messages?: Message[];
@@ -46,7 +46,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     const groupedMessages = messages.reduce<
         Array<{ date: Date; messages: Message[] }>
     >((groups, message) => {
-        const messageDate = new Date(message.created_at);
+        const messageDate = message.created_at ? new Date(message.created_at) : new Date();
         messageDate.setHours(0, 0, 0, 0);
 
         const existingGroup = groups.find((g) =>
@@ -100,6 +100,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             {/* Messages Container */}
             <motion.div
                 ref={messagesContainerRef}
+                data-chat-scroll
                 onScroll={handleScroll}
                 className="flex-1 overflow-y-auto custom-scrollbar px-4 py-3 space-y-2 relative z-10"
                 initial={{ opacity: 0 }}

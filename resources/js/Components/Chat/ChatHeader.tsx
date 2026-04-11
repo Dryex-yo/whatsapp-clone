@@ -1,15 +1,15 @@
 import React from 'react';
 import { MessageSquare, Phone, Video, MoreVertical } from 'lucide-react';
 import { motion } from 'framer-motion';
-import type { Conversation, User } from '../types/chat';
+import type { Conversation, User } from '@/types/chat';
 
-interface ChatHeaderProps {
+export interface ChatHeaderProps {
     conversation: Conversation;
     currentUser: User;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation, currentUser }) => {
-    const otherUser = conversation.participants?.find(u => u.id !== currentUser.id);
+    const otherUser = conversation.users?.find((u: User) => u.id !== currentUser.id) || conversation.other_user;
     const displayName = conversation.name || otherUser?.name || 'Unknown';
     const isOnline = otherUser?.last_seen && 
         new Date(otherUser.last_seen).getTime() > Date.now() - 5 * 60 * 1000;
@@ -78,13 +78,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation, currentUse
     );
 };
 
-interface ChatHeaderOnlyProps {
-    title: string;
-}
-
 /**
  * Minimal header for when no conversation is selected
  */
+export interface ChatHeaderOnlyProps {
+    title: string;
+}
+
 export const ChatHeaderOnly: React.FC<ChatHeaderOnlyProps> = ({ title }) => {
     return (
         <motion.header
