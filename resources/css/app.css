@@ -2,13 +2,105 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================================
+   WhatsApp Clone - Custom Scrollbar Styles
+   ============================================================================ */
+
+.custom-scrollbar {
+    scrollbar-color: rgba(0, 92, 75, 0.5) rgba(17, 27, 33, 0.2);
+    scrollbar-width: thin;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
+    height: 8px;
 }
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(17, 27, 33, 0.3);
+}
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(0,0,0,0.2);
+    background: rgba(0, 92, 75, 0.5);
     border-radius: 10px;
+    border: 2px solid rgba(17, 27, 33, 0.3);
+    transition: background-color 0.2s ease;
 }
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.1);
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 92, 75, 0.8);
+}
+
+/* ============================================================================
+   Background Patterns
+   ============================================================================ */
+
+.chat-bg-pattern {
+    background-image: 
+        radial-gradient(circle at 20px 50px, rgba(0, 92, 75, 0.03) 1px, transparent 1px),
+        radial-gradient(circle at 60px 70px, rgba(0, 92, 75, 0.02) 1px, transparent 1px),
+        radial-gradient(circle at 50px 0px, rgba(0, 92, 75, 0.02) 1px, transparent 1px);
+    background-size: 100px 100px;
+    background-attachment: fixed;
+}
+
+/* ============================================================================
+   Smooth Animations
+   ============================================================================ */
+
+@layer components {
+    .btn-ghost-primary @apply transition-all duration-200 ease-out hover:scale-105 active:scale-95;
+    
+    .message-bubble-enter @apply animate-in fade-in slide-in-from-bottom-2 duration-300;
+}
+
+/* ============================================================================
+   Dark Mode Theme
+   ============================================================================ */
+
+:root {
+    --color-bg-primary: #111b21;
+    --color-bg-secondary: #202c33;
+    --color-bg-tertiary: #1f2937;
+    --color-accent: #005c4b;
+    --color-accent-light: #00d084;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #b0bec5;
+    --color-border: #1f2937;
+}
+
+/* ============================================================================
+   Customizations
+   ============================================================================ */
+
+/* Remove default focus ring and add custom one */
+input:focus,
+textarea:focus,
+button:focus {
+    outline: none;
+}
+
+/* Smooth transitions for all interactive elements */
+button,
+input,
+textarea,
+select {
+    @apply transition-all duration-200 ease-out;
+}
+
+/* Responsive text sizing */
+@media (max-width: 768px) {
+    body {
+        font-size: 14px;
+    }
+}
+
+/* ============================================================================
+   Print Styles
+   ============================================================================ */
+
+@media print {
+    .custom-scrollbar {
+        scrollbar-width: auto;
+    }
 }
