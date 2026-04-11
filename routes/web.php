@@ -27,6 +27,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/chat', [ChatController::class, 'index'])->name('chat');
+    Route::get('/chat/{conversation}', [ChatController::class, 'show'])->name('chat.show');
 });
 
 require __DIR__.'/auth.php';

@@ -19,4 +19,15 @@ class ChatController extends Controller
             'conversations' => $conversations
         ]);
     }
+
+    public function show(Request $request, Conversation $conversation)
+    {
+        // Pastikan user adalah bagian dari percakapan ini
+        abort_unless($conversation->users->contains($request->user()->id), 403);
+
+        return Inertia::render('Chat', [
+            'conversations' => $request->user()->conversations()->with(['lastMessage', 'users'])->get(),
+            'activeConversation' => $conversation->load(['messages.user', 'users']),
+        ]);
+    }
 }
