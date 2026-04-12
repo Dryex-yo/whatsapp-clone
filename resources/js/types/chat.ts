@@ -36,7 +36,7 @@ export interface Conversation {
         last_read_message_id?: number;
     };
     // Related data
-    users?: User[];
+    users?: User[] | Record<string, any>;  // Can be array or object from Resource
     last_message?: Message;
     other_user?: User; // For 1-on-1 chats (the other participant)
     unread_count?: number;

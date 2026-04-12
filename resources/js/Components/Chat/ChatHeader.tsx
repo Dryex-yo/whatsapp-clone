@@ -9,7 +9,9 @@ export interface ChatHeaderProps {
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({ conversation, currentUser }) => {
-    const otherUser = conversation.users?.find((u: User) => u.id !== currentUser.id) || conversation.other_user;
+    // Ensure users is an array before calling find
+    const usersArray = Array.isArray(conversation.users) ? conversation.users : [];
+    const otherUser = usersArray.find((u: User) => u.id !== currentUser.id) || conversation.other_user;
     const displayName = conversation.name || otherUser?.name || 'Unknown';
     const isOnline = otherUser?.last_seen && 
         new Date(otherUser.last_seen).getTime() > Date.now() - 5 * 60 * 1000;

@@ -222,7 +222,7 @@ export const getConversationDisplayName = (conversation: Conversation, currentUs
 
     // For 1-on-1, get other user's name
     if (!conversation.is_group && conversation.users && conversation.users.length > 0) {
-        const otherUser = conversation.users.find((u) => u.id !== currentUser.id);
+        const otherUser = conversation.users.find((u: User) => u.id !== currentUser.id);
         return otherUser?.name || 'Unknown User';
     }
 
@@ -242,7 +242,7 @@ export const getConversationDisplayAvatar = (conversation: Conversation, current
 
     // For 1-on-1, get other user's avatar
     if (!conversation.is_group && conversation.users && conversation.users.length > 0) {
-        const otherUser = conversation.users.find((u) => u.id !== currentUser.id);
+        const otherUser = conversation.users.find((u: User) => u.id !== currentUser.id);
         return otherUser?.avatar || null;
     }
 
@@ -260,7 +260,7 @@ export const getOtherUser = (conversation: Conversation, currentUser: User): Use
         return null;
     }
 
-    return conversation.users.find((u) => u.id !== currentUser.id) || null;
+    return conversation.users.find((u: User) => u.id !== currentUser.id) || null;
 };
 
 /**

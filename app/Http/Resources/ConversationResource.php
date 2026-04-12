@@ -22,8 +22,8 @@ class ConversationResource extends JsonResource
         $currentUserId = $request->user()?->id;
         
         // For 1-on-1 conversations, get the other user
-        $users = $this->whenLoaded('users', function () use ($currentUserId) {
-            return UserResource::collection($this->users);
+        $users = $this->whenLoaded('users', function () {
+            return UserResource::collection($this->users)->resolve();
         });
 
         $otherUser = null;

@@ -7,6 +7,7 @@ use App\Models\Message;
 use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
 use App\Http\Resources\UserResource;
+use App\Events\MessageSent;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\Request;
@@ -159,6 +160,9 @@ class ChatController extends Controller
         $conversation->users()->updateExistingPivot($user->id, [
             'updated_at' => now(),
         ]);
+
+        // Broadcast message to all conversation members in real-time via Reverb
+        MessageSent::dispatch($message);
 
         return response()->json(new MessageResource($message), 201);
     }

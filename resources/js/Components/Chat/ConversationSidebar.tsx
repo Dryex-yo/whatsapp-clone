@@ -14,7 +14,9 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
     isActive, 
     onSelect 
 }) => {
-    const displayName = conversation.name || conversation.other_user?.name || conversation.users?.[0]?.name || 'Unknown';
+    // Ensure users is an array
+    const usersArray = Array.isArray(conversation.users) ? conversation.users : [];
+    const displayName = conversation.name || conversation.other_user?.name || usersArray[0]?.name || 'Unknown';
     const hasUnread = (conversation.unread_count ?? 0) > 0;
     
     return (
