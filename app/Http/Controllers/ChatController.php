@@ -8,6 +8,7 @@ use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
 use App\Http\Resources\UserResource;
 use App\Events\MessageSent;
+use App\Events\UpdateUserPresence;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\Request;
@@ -165,5 +166,33 @@ class ChatController extends Controller
         MessageSent::dispatch($message);
 
         return response()->json(new MessageResource($message), 201);
+    }
+
+    /**
+     * Update user presence in a conversation.
+     * 
+     * Broadcasts to presence channel to notify other users that this user is online
+     * 
+     * @param Request $request
+     * @param Conversation $conversation
+     * @return JsonResponse
+     */
+    public function updatePresence(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = $request->user();
+
+        // Authorize: User must be part of this conversation
+        abort_unless($conversation->users->contains($user->id), 403);
+
+        // Update last_seen (middleware should handle this, but explicit update for presence)
+        $user->update(['last_seen' => now()]);
+
+        // Broadcast user joined event
+        UpdateUserPresence::dispatch($user, $conversation->id, true);
+
+        return response()->json([
+            'message' => 'Presence updated',
+            'user' => new UserResource($user),
+        ]);
     }
 }

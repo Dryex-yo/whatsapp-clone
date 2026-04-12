@@ -12,7 +12,11 @@ export interface ChatWindowProps {
     messages?: Message[];
     isLoading?: boolean;
     onSendMessage?: (message: string, file?: File) => Promise<void>;
+    onTypingStart?: () => void;
+    onTypingStop?: () => void;
     isTyping?: boolean;
+    typingUsers?: Record<number, string>;
+    onlineUsers?: Record<number, User>;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -21,7 +25,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     messages = [],
     isLoading = false,
     onSendMessage,
+    onTypingStart,
+    onTypingStop,
     isTyping = false,
+    typingUsers = {},
+    onlineUsers = {},
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -95,7 +103,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             <div className="absolute inset-0 opacity-5 bg-gradient-to-br from-[#005c4b] to-transparent pointer-events-none" />
 
             {/* Chat Header */}
-            <ChatHeader conversation={conversation} currentUser={currentUser} />
+            <ChatHeader 
+                conversation={conversation} 
+                currentUser={currentUser} 
+                typingUsers={typingUsers}
+                onlineUsers={onlineUsers}
+            />
 
             {/* Messages Container */}
             <motion.div
@@ -199,7 +212,11 @@ export const ChatWindowCompact: React.FC<ChatWindowProps> = ({
     currentUser,
     messages = [],
     onSendMessage,
+    onTypingStart,
+    onTypingStop,
     isTyping = false,
+    typingUsers = {},
+    onlineUsers = {},
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -244,7 +261,13 @@ export const ChatWindowCompact: React.FC<ChatWindowProps> = ({
                 <div ref={messagesEndRef} />
             </div>
 
-            {onSendMessage && <MessageInput onSendMessage={onSendMessage} />}
+            {onSendMessage && (
+                <MessageInput 
+                    onSendMessage={onSendMessage}
+                    onTypingStart={onTypingStart}
+                    onTypingStop={onTypingStop}
+                />
+            )}
         </motion.div>
     );
 };

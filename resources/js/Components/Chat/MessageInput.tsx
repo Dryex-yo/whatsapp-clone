@@ -4,12 +4,16 @@ import { motion } from 'framer-motion';
 
 export interface MessageInputProps {
     onSendMessage: (message: string, file?: File) => void;
+    onTypingStart?: () => void;
+    onTypingStop?: () => void;
     disabled?: boolean;
     isLoading?: boolean;
 }
 
 export const MessageInput: React.FC<MessageInputProps> = ({
     onSendMessage,
+    onTypingStart,
+    onTypingStop,
     disabled = false,
     isLoading = false,
 }) => {
@@ -17,12 +21,44 @@ export const MessageInput: React.FC<MessageInputProps> = ({
     const [isRecording, setIsRecording] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textInputRef = useRef<HTMLTextAreaElement>(null);
+    const typingTimeoutRef = useRef<NodeJS.Timeout>();
 
     const handleSendMessage = () => {
         if (message.trim()) {
             onSendMessage(message.trim());
             setMessage('');
             textInputRef.current?.focus();
+            // Clear typing status
+            clearTypingTimeout();
+            onTypingStop?.();
+        }
+    };
+
+    const clearTypingTimeout = () => {
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = undefined;
+        }
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const value = e.target.value;
+        setMessage(value);
+
+        // Clear existing timeout
+        clearTypingTimeout();
+
+        if (value.trim().length > 0) {
+            // Broadcast typing start
+            onTypingStart?.();
+
+            // Set timeout to broadcast typing stop
+            typingTimeoutRef.current = setTimeout(() => {
+                onTypingStop?.();
+            }, 3000);
+        } else {
+            // Stop typing immediately if text is empty
+            onTypingStop?.();
         }
     };
 
@@ -33,6 +69,11 @@ export const MessageInput: React.FC<MessageInputProps> = ({
         }
     };
 
+    const handleBlur = () => {
+        clearTypingTimeout();
+        onTypingStop?.();
+    };
+
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -40,6 +81,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
+            clearTypingTimeout();
+            onTypingStop?.();
         }
     };
 
@@ -95,8 +138,9 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                     <textarea
                         ref={textInputRef}
                         value={message}
-                        onChange={(e) => setMessage(e.target.value)}
+                        onChange={handleInputChange}
                         onKeyPress={handleKeyPress}
+                        onBlur={handleBlur}
                         placeholder="Type a message..."
                         disabled={disabled || isLoading}
                         rows={1}

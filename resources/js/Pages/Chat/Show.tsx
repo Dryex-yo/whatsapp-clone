@@ -3,6 +3,8 @@ import { usePage, router } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { ConversationSidebar } from '@/Components/Chat/ConversationSidebar';
 import { ChatWindow } from '@/Components/Chat/ChatWindow';
+import { usePresence } from '@/hooks/usePresence';
+import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import type { Conversation, Message, User } from '@/types/chat';
 import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
@@ -24,7 +26,7 @@ interface PageProps extends InertiaPageProps {
  * Chat Show Page
  * 
  * Displays a specific conversation with full message history
- * Supports pagination, message sending, and real-time updates
+ * Supports pagination, message sending, and real-time updates via presence channels and typing indicators
  */
 export default function ChatShowPage() {
     const { props } = usePage<PageProps>();
@@ -40,6 +42,15 @@ export default function ChatShowPage() {
     const [isSending, setIsSending] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
+
+    // Setup presence tracking for online users
+    const { onlineUsers } = usePresence(activeConversation?.id, currentUser);
+
+    // Setup typing indicator
+    const { typingUsers, broadcastTypingStart, broadcastTypingStop } = useTypingIndicator(
+        activeConversation?.id,
+        currentUser?.id
+    );
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
@@ -190,7 +201,11 @@ export default function ChatShowPage() {
                     messages={messages}
                     isLoading={isLoading}
                     onSendMessage={handleSendMessage}
+                    onTypingStart={broadcastTypingStart}
+                    onTypingStop={broadcastTypingStop}
                     isTyping={isTyping}
+                    typingUsers={typingUsers}
+                    onlineUsers={onlineUsers}
                 />
             </div>
 

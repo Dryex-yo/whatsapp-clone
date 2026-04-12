@@ -18,4 +18,11 @@ Route::middleware('auth:sanctum')->group(function () {
      */
     Route::post('/conversations/{conversation}/messages', [ChatController::class, 'store'])
         ->name('messages.store');
+
+    /**
+     * Presence Routes
+     * Updates user presence in conversation for real-time online status
+     */
+    Route::post('/conversations/{conversation}/presence', [ChatController::class, 'updatePresence'])
+        ->name('conversations.presence');
 });
