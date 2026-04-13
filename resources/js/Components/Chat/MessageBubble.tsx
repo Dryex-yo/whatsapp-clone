@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, CheckCheck, AlertCircle } from 'lucide-react';
 import { ImageMessage } from '@/Components/ImageMessage';
+import { AudioPlayer } from '@/Components/Chat/AudioPlayer';
 import { MessageStatus } from '@/Components/MessageStatus';
 import type { Message, User } from '@/types/chat';
 import type { Variants } from 'framer-motion';
@@ -111,6 +112,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                         </div>
                         <div className="text-sm">{message.body}</div>
                     </div>
+                )}
+
+                {/* Message Type: Audio (legacy - voice messages) */}
+                {message.type === 'audio' && message.body && (
+                    <AudioPlayer
+                        src={message.body}
+                        fileName={message.body.split('/').pop() || 'Voice Message'}
+                        isOwn={isSent}
+                    />
                 )}
 
                 {/* Timestamp & Message Status (for sent messages) */}

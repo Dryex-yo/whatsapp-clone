@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, X, ZoomIn } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { AudioPlayer } from '@/Components/Chat/AudioPlayer';
 import type { MessageAttachment } from '@/types/chat';
 
 interface ImageMessageProps {
@@ -236,24 +237,13 @@ export function ImageMessage({
     // Audio rendering
     if (attachment.type === 'audio') {
         return (
-            <div className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 rounded-lg p-4 max-w-xs">
-                <div className="flex items-center gap-3">
-                    <span className="text-2xl">🎵</span>
-                    <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {attachment.file_name}
-                        </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
-                            {attachment.human_size}
-                        </p>
-                    </div>
-                </div>
-                <audio
-                    src={attachment.url}
-                    controls
-                    className="w-full mt-3 h-8"
-                />
-            </div>
+            <AudioPlayer
+                src={attachment.url}
+                fileName={attachment.file_name}
+                duration={attachment.duration}
+                fileSize={attachment.human_size}
+                isOwn={isOwn}
+            />
         );
     }
 

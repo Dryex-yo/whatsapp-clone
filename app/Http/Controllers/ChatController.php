@@ -122,11 +122,18 @@ class ChatController extends Controller
         // Authorize: User must be part of this conversation
         abort_unless($conversation->users->contains($user->id), 403);
 
-        // Validate input
+        // Validate input - body can be empty if file is provided (for voice/media-only messages)
         $validated = $request->validate([
-            'body' => 'required|string|max:5000',
+            'body' => 'nullable|string|max:5000',
             'file' => 'nullable|file|max:52428800', // 50MB max
         ]);
+
+        // At least body OR file must be provided
+        if (empty($validated['body']) && !$request->hasFile('file')) {
+            return response()->json([
+                'message' => 'Message body or file is required',
+            ], 422);
+        }
 
         // Determine message type
         $type = 'text';
@@ -136,7 +143,18 @@ class ChatController extends Controller
 
         if ($request->hasFile('file')) {
             $file = $request->file('file');
-            $type = str_starts_with($file->getMimeType(), 'image/') ? 'image' : 'file';
+            $mimeType = $file->getMimeType();
+            
+            // Determine type based on MIME type
+            if (str_starts_with($mimeType, 'image/')) {
+                $type = 'image';
+            } elseif (str_starts_with($mimeType, 'audio/')) {
+                $type = 'audio';
+            } elseif (str_starts_with($mimeType, 'video/')) {
+                $type = 'video';
+            } else {
+                $type = 'file';
+            }
             
             // Store file
             $filePath = $file->store('messages', 'public');
@@ -148,7 +166,7 @@ class ChatController extends Controller
         $message = Message::create([
             'conversation_id' => $conversation->id,
             'user_id' => $user->id,
-            'body' => $validated['body'],
+            'body' => $validated['body'] ?? '',
             'type' => $type,
             'status' => 'sent', // Default status for new messages
             'file_path' => $filePath,

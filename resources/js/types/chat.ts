@@ -71,11 +71,11 @@ export interface Message {
     conversation_id: number;
     user_id: number;
     body: string;
-    type: 'text' | 'image' | 'file'; // Message type (legacy)
+    type: 'text' | 'image' | 'video' | 'audio' | 'file'; // Message type (legacy)
     status: 'sent' | 'delivered' | 'read'; // Message delivery status
-    file_path?: string; // File path if type is 'image' or 'file' (legacy)
+    file_path?: string; // File path if type is 'image', 'audio', 'video' or 'file' (legacy)
     file_size?: number; // File size in bytes (legacy)
-    mime_type?: string; // MIME type (e.g., 'image/jpeg', 'application/pdf') (legacy)
+    mime_type?: string; // MIME type (e.g., 'image/jpeg', 'audio/webm', 'application/pdf') (legacy)
     read_at?: string | null; // ISO 8601 timestamp when read
     edited_at?: string | null; // ISO 8601 timestamp when edited
     deleted_at?: string | null; // ISO 8601 timestamp when soft deleted

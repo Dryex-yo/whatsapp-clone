@@ -90,7 +90,10 @@ export default function ChatShowPage() {
 
     const handleSendMessage = useCallback(
         async (body: string, file?: File) => {
-            if (!activeConversation?.id || !body.trim()) return;
+            if (!activeConversation?.id) return;
+            
+            // Check if message has content (body or file)
+            if (!body.trim() && !file) return;
 
             setIsSending(true);
             const formData = new FormData();

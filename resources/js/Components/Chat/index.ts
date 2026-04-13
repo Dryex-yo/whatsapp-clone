@@ -28,6 +28,12 @@ export {
 } from './MessageInput';
 export type { MessageInputProps } from './MessageInput';
 
+export { VoiceRecorder } from './VoiceRecorder';
+export type { } from './VoiceRecorder';
+
+export { AudioPlayer } from './AudioPlayer';
+export type { } from './AudioPlayer';
+
 export { 
     ChatWindow, 
     ChatWindowCompact 

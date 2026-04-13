@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { Send, Paperclip, Smile, Mic } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ImagePreview } from '@/Components/ImagePreview';
+import { VoiceRecorder } from '@/Components/Chat/VoiceRecorder';
 import { useMediaUpload } from '@/hooks/useMediaUpload';
 import type { UploadPreview } from '@/types/media';
 
@@ -24,6 +25,7 @@ export const MessageInput: React.FC<MessageInputProps> = ({
 }) => {
     const [message, setMessage] = useState('');
     const [isRecording, setIsRecording] = useState(false);
+    const [isVoiceRecording, setIsVoiceRecording] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textInputRef = useRef<HTMLTextAreaElement>(null);
@@ -234,14 +236,8 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                             <motion.button
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.95 }}
-                                onMouseDown={() => setIsRecording(true)}
-                                onMouseUp={() => setIsRecording(false)}
-                                onMouseLeave={() => setIsRecording(false)}
-                                className={`${
-                                    isRecording
-                                        ? 'bg-red-500 animate-pulse'
-                                        : 'bg-[#005c4b] hover:bg-[#00704d]'
-                                } text-white p-2.5 rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed`}
+                                onClick={() => setIsVoiceRecording(true)}
+                                className="bg-[#005c4b] hover:bg-[#00704d] text-white p-2.5 rounded-full transition disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled={disabled || isLoading || uploadLoading || isSubmitting}
                                 type="button"
                             >
@@ -262,6 +258,36 @@ export const MessageInput: React.FC<MessageInputProps> = ({
                     </motion.p>
                 )}
             </motion.div>
+
+            {/* Voice Recorder Modal */}
+            <AnimatePresence>
+                {isVoiceRecording && (
+                    <VoiceRecorder
+                        onSend={async (audioBlob) => {
+                            setIsSubmitting(true);
+                            try {
+                                // Convert blob to File for upload
+                                const audioFile = new File(
+                                    [audioBlob],
+                                    `voice-message-${Date.now()}.webm`,
+                                    { type: 'audio/webm' }
+                                );
+                                
+                                // Send message with empty body and audio file
+                                // Backend will handle storing the file and creating message
+                                onSendMessage('', audioFile);
+                                setIsVoiceRecording(false);
+                            } catch (error) {
+                                console.error('Failed to send voice message:', error);
+                            } finally {
+                                setIsSubmitting(false);
+                            }
+                        }}
+                        onCancel={() => setIsVoiceRecording(false)}
+                        isSubmitting={isSubmitting}
+                    />
+                )}
+            </AnimatePresence>
         </>
     );
 };
