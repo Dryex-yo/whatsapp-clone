@@ -1,6 +1,7 @@
 import React from 'react';
 import { MessageSquare, Phone, Video, MoreVertical } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { NotificationSettings } from './NotificationSettings';
 import type { Conversation, User } from '@/types/chat';
 
 export interface ChatHeaderProps {
@@ -8,6 +9,10 @@ export interface ChatHeaderProps {
     currentUser: User;
     typingUsers?: Record<number, string>;
     onlineUsers?: Record<number, User>;
+    canNotify?: boolean;
+    isSoundEnabled?: boolean;
+    onToggleSound?: () => void;
+    onRequestNotificationPermission?: () => Promise<boolean>;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({ 
@@ -15,6 +20,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     currentUser,
     typingUsers = {},
     onlineUsers = {},
+    canNotify = false,
+    isSoundEnabled = true,
+    onToggleSound,
+    onRequestNotificationPermission,
 }) => {
     // Ensure users is an array before calling find
     const usersArray = Array.isArray(conversation.users) ? conversation.users : [];
@@ -120,6 +129,17 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                 >
                     <Video className="w-5 h-5" />
                 </motion.button>
+                
+                {/* Notification Settings */}
+                {onToggleSound && onRequestNotificationPermission && (
+                    <NotificationSettings
+                        canNotify={canNotify}
+                        isSoundEnabled={isSoundEnabled}
+                        onToggleSound={onToggleSound}
+                        onRequestNotificationPermission={onRequestNotificationPermission}
+                    />
+                )}
+                
                 <motion.button
                     whileHover={{ scale: 1.1, color: '#00d084' }}
                     whileTap={{ scale: 0.95 }}

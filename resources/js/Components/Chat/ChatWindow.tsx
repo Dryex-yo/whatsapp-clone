@@ -21,6 +21,10 @@ export interface ChatWindowProps {
     onlineUsers?: Record<number, User>;
     onLoadMoreMessages?: () => Promise<void>;
     hasMoreMessages?: boolean;
+    canNotify?: boolean;
+    isSoundEnabled?: boolean;
+    onToggleSound?: () => void;
+    onRequestNotificationPermission?: () => Promise<boolean>;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -36,6 +40,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     onlineUsers = {},
     onLoadMoreMessages,
     hasMoreMessages = false,
+    canNotify = false,
+    isSoundEnabled = true,
+    onToggleSound,
+    onRequestNotificationPermission,
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -138,6 +146,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 currentUser={currentUser} 
                 typingUsers={typingUsers}
                 onlineUsers={onlineUsers}
+                canNotify={canNotify}
+                isSoundEnabled={isSoundEnabled}
+                onToggleSound={onToggleSound}
+                onRequestNotificationPermission={onRequestNotificationPermission}
             />
 
             {/* Search in Chat Overlay */}

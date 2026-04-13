@@ -5,6 +5,7 @@ import { ConversationSidebar } from '@/Components/Chat/ConversationSidebar';
 import { ChatWindow } from '@/Components/Chat/ChatWindow';
 import { usePresence } from '@/hooks/usePresence';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
+import { useWebNotifications } from '@/hooks/useWebNotifications';
 import type { Conversation, Message, User } from '@/types/chat';
 import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
@@ -53,6 +54,47 @@ export default function ChatShowPage() {
         activeConversation?.id,
         currentUser?.id
     );
+
+    // Setup web notifications (browser alerts, sound, favicon badge)
+    const notifications = useWebNotifications(currentUser, activeConversation, {
+        enableBrowserNotifications: true,
+        enableSound: true,
+        enableFaviconBadge: true,
+    });
+
+    // Clear unread count when entering a conversation
+    useEffect(() => {
+        notifications.clearUnreadCount();
+    }, [activeConversation?.id, notifications]);
+
+    // Track last notified message to avoid duplicate notifications
+    const lastNotifiedMessageRef = React.useRef<number | null>(null);
+
+    // Listen for incoming messages and trigger notifications
+    useEffect(() => {
+        if (messages.length === 0 || !currentUser) return;
+
+        // Get the last message
+        const lastMessage = messages[messages.length - 1];
+        
+        // Check if this is a new message (not already notified) and from another user
+        if (
+            lastMessage && 
+            lastMessage.id !== lastNotifiedMessageRef.current &&
+            lastMessage.user_id !== currentUser.id
+        ) {
+            // Get the sender user from the conversation users
+            const sender = conversationsArray
+                .find(conv => conv.id === activeConversation?.id)
+                ?.users?.find((u: any) => u.id === lastMessage.user_id);
+            
+            if (sender) {
+                // Trigger notification for incoming message
+                notifications.notifyNewMessage(lastMessage, sender);
+                lastNotifiedMessageRef.current = lastMessage.id;
+            }
+        }
+    }, [messages, currentUser?.id, activeConversation?.id, conversationsArray, notifications]);
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
@@ -194,6 +236,10 @@ export default function ChatShowPage() {
                     onlineUsers={onlineUsers}
                     onLoadMoreMessages={handleLoadMore}
                     hasMoreMessages={hasMoreMessages}
+                    canNotify={notifications.canNotify}
+                    isSoundEnabled={notifications.isSoundEnabled}
+                    onToggleSound={notifications.toggleSoundNotification}
+                    onRequestNotificationPermission={notifications.requestNotificationPermission}
                 />
             </div>
 
