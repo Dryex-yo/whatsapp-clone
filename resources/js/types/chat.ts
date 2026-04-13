@@ -43,6 +43,27 @@ export interface Conversation {
 }
 
 /**
+ * Message Attachment Type - Represents a file attached to a message
+ */
+export interface MessageAttachment {
+    id: number;
+    message_id: number;
+    file_name: string;
+    type: 'image' | 'video' | 'audio' | 'document';
+    mime_type: string;
+    size: number;
+    human_size: string; // Human-readable size (e.g., "2.5 MB")
+    url: string; // Full URL to the file
+    thumbnail_url?: string | null; // Thumbnail URL for images/videos
+    width?: number; // Image width in pixels
+    height?: number; // Image height in pixels
+    duration?: number; // Duration in seconds for audio/video
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    created_at?: string;
+    updated_at?: string;
+}
+
+/**
  * Message Type - Represents a single message
  */
 export interface Message {
@@ -50,10 +71,10 @@ export interface Message {
     conversation_id: number;
     user_id: number;
     body: string;
-    type: 'text' | 'image' | 'file'; // Message type
-    file_path?: string; // File path if type is 'image' or 'file'
-    file_size?: number; // File size in bytes
-    mime_type?: string; // MIME type (e.g., 'image/jpeg', 'application/pdf')
+    type: 'text' | 'image' | 'file'; // Message type (legacy)
+    file_path?: string; // File path if type is 'image' or 'file' (legacy)
+    file_size?: number; // File size in bytes (legacy)
+    mime_type?: string; // MIME type (e.g., 'image/jpeg', 'application/pdf') (legacy)
     read_at?: string | null; // ISO 8601 timestamp when read
     edited_at?: string | null; // ISO 8601 timestamp when edited
     deleted_at?: string | null; // ISO 8601 timestamp when soft deleted
@@ -63,6 +84,7 @@ export interface Message {
     sender?: User;
     user?: User; // Alias for sender
     conversation?: Conversation;
+    attachments?: MessageAttachment[]; // New: Media attachments
     // Computed properties
     is_read?: boolean;
     is_edited?: boolean;
@@ -150,48 +172,40 @@ export interface ChatHeaderProps {
 export interface MessageBubbleProps {
     message: Message;
     currentUser: User;
-    isConsecutive?: boolean; // Same sender as previous message
-    onEdit?: (message: Message) => void;
-    onDelete?: (messageId: number) => void;
+    isConsecutive?: boolean;
 }
 
 export interface MessageGroupProps {
     messages: Message[];
     currentUser: User;
-    onEdit?: (message: Message) => void;
-    onDelete?: (messageId: number) => void;
 }
 
 export interface DateSeparatorProps {
-    date: string; // ISO date or formatted string
+    date: Date;
 }
 
-export interface TypingIndicatorProps {
-    userNames?: string[]; // Names of users typing
-}
+export interface TypingIndicatorProps {}
 
 export interface MessageInputProps {
-    onSendMessage: (body: string, file?: File) => Promise<void>;
+    conversationId: number;
+    onSendMessage: (message: string, file?: File) => void;
+    onTypingStart?: () => void;
+    onTypingStop?: () => void;
     disabled?: boolean;
     isLoading?: boolean;
-    placeholder?: string;
-    maxCharacters?: number;
-    acceptedFileTypes?: string[];
-    maxFileSize?: number; // in bytes
 }
 
 export interface ChatWindowProps {
-    conversation: Conversation | null;
+    conversation?: Conversation | null;
     currentUser: User;
     messages?: Message[];
     isLoading?: boolean;
-    isLoadingMore?: boolean;
-    onSendMessage?: (body: string, file?: File) => Promise<void>;
-    onLoadMore?: () => Promise<void>;
+    onSendMessage?: (message: string, file?: File) => Promise<void>;
+    onTypingStart?: () => void;
+    onTypingStop?: () => void;
     isTyping?: boolean;
-    typingUsers?: string[];
-    onEdit?: (message: Message, newBody: string) => Promise<void>;
-    onDelete?: (messageId: number) => Promise<void>;
+    typingUsers?: Record<number, string>;
+    onlineUsers?: Record<number, User>;
 }
 
 export interface ConversationSidebarProps {

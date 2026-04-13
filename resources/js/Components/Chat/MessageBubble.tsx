@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, CheckCheck, AlertCircle } from 'lucide-react';
+import { ImageMessage } from '@/Components/ImageMessage';
 import type { Message, User } from '@/types/chat';
 import type { Variants } from 'framer-motion';
 
@@ -71,12 +72,26 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                         : 'bg-[#202c33] text-gray-100 rounded-br-lg'
                 }`}
             >
+                {/* Attachments (new media system) */}
+                {message.attachments && message.attachments.length > 0 && (
+                    <div className="mb-2 space-y-2">
+                        {message.attachments.map((attachment) => (
+                            <ImageMessage
+                                key={attachment.id}
+                                attachment={attachment}
+                                isOwn={isSent}
+                                maxWidth={300}
+                            />
+                        ))}
+                    </div>
+                )}
+
                 {/* Message Type: Text */}
                 {message.type === 'text' && (
                     <p className="text-sm break-words">{message.body}</p>
                 )}
 
-                {/* Message Type: Image */}
+                {/* Message Type: Image (legacy) */}
                 {message.type === 'image' && (
                     <div className="rounded overflow-hidden max-w-xs">
                         <img
@@ -87,7 +102,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                     </div>
                 )}
 
-                {/* Message Type: File */}
+                {/* Message Type: File (legacy) */}
                 {message.type === 'file' && (
                     <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded bg-white bg-opacity-20 flex items-center justify-center">

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Carbon\Carbon;
@@ -85,6 +86,14 @@ class Message extends Model
     public function user(): BelongsTo
     {
         return $this->sender();
+    }
+
+    /**
+     * Get the attachments (media files) for this message.
+     */
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(MessageAttachment::class);
     }
 
     /**

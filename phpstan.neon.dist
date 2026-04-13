@@ -1,0 +1,24 @@
+includes:
+  - phpstan-baseline.neon
+
+parameters:
+  level: 5
+  paths:
+    - app
+    - config
+    - routes
+    - tests
+
+  # Ignore undefined types for optional dependencies
+  ignoreErrors:
+    # Intervention Image is optional
+    - message: '#Undefined class Intervention\\Image\\ImageManager#'
+      paths:
+        - app/Http/Controllers/MediaController.php
+    - message: '#Undefined class Intervention\\Image\\Drivers\\GdDriver#'
+      paths:
+        - app/Http/Controllers/MediaController.php
+    # Auth facade dynamic method call
+    - message: '#Call to an undefined method Illuminate\\.*::user\(\)#'
+      paths:
+        - app/Http/Controllers/MediaController.php

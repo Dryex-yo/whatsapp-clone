@@ -193,11 +193,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             </motion.div>
 
             {/* Message Input */}
-            {onSendMessage && (
+            {onSendMessage && conversation?.id && (
                 <MessageInput
+                    conversationId={conversation.id}
                     onSendMessage={onSendMessage}
                     disabled={isLoading}
                     isLoading={isLoading}
+                    onTypingStart={onTypingStart}
+                    onTypingStop={onTypingStop}
                 />
             )}
         </motion.div>
@@ -261,8 +264,9 @@ export const ChatWindowCompact: React.FC<ChatWindowProps> = ({
                 <div ref={messagesEndRef} />
             </div>
 
-            {onSendMessage && (
+            {onSendMessage && conversation?.id && (
                 <MessageInput 
+                    conversationId={conversation.id}
                     onSendMessage={onSendMessage}
                     onTypingStart={onTypingStart}
                     onTypingStop={onTypingStop}

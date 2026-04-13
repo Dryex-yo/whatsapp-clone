@@ -69,7 +69,7 @@ class ChatController extends Controller
 
         // Fetch paginated messages (50 per page, arrange newest last)
         $messages = $conversation->messages()
-            ->with('user')
+            ->with(['user', 'attachments'])
             ->orderBy('created_at', 'desc')
             ->paginate(50);
 
@@ -152,7 +152,7 @@ class ChatController extends Controller
         ]);
 
         // Load user relationship for response
-        $message->load('user');
+        $message->load(['user', 'attachments']);
 
         // Update conversation's updated_at timestamp
         $conversation->touch();

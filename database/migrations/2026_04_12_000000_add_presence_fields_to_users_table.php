@@ -12,9 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('avatar')->nullable()->after('email_verified_at');
-            $table->string('phone')->nullable()->after('avatar');
-            $table->timestamp('last_seen')->nullable()->after('phone');
+            // Only add columns if they don't already exist
+            if (!Schema::hasColumn('users', 'avatar')) {
+                $table->string('avatar')->nullable()->after('email_verified_at');
+            }
+            if (!Schema::hasColumn('users', 'phone')) {
+                $table->string('phone')->nullable()->after('avatar');
+            }
+            if (!Schema::hasColumn('users', 'last_seen')) {
+                $table->timestamp('last_seen')->nullable()->after('phone');
+            }
         });
     }
 
@@ -24,7 +31,20 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['avatar', 'phone', 'last_seen']);
+            $columnsToRemove = [];
+            if (Schema::hasColumn('users', 'avatar')) {
+                $columnsToRemove[] = 'avatar';
+            }
+            if (Schema::hasColumn('users', 'phone')) {
+                $columnsToRemove[] = 'phone';
+            }
+            if (Schema::hasColumn('users', 'last_seen')) {
+                $columnsToRemove[] = 'last_seen';
+            }
+            
+            if (!empty($columnsToRemove)) {
+                $table->dropColumn($columnsToRemove);
+            }
         });
     }
 };

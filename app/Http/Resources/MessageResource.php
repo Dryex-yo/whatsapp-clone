@@ -56,6 +56,7 @@ class MessageResource extends JsonResource
             'formatted_file_size' => $formattedFileSize,
             // Relationships (only include sender for message details)
             'sender' => new UserResource($this->whenLoaded('user')),
+            'attachments' => MessageAttachmentResource::collection($this->whenLoaded('attachments')),
         ];
     }
 }
