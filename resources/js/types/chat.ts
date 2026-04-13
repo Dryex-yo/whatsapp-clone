@@ -72,6 +72,7 @@ export interface Message {
     user_id: number;
     body: string;
     type: 'text' | 'image' | 'file'; // Message type (legacy)
+    status: 'sent' | 'delivered' | 'read'; // Message delivery status
     file_path?: string; // File path if type is 'image' or 'file' (legacy)
     file_size?: number; // File size in bytes (legacy)
     mime_type?: string; // MIME type (e.g., 'image/jpeg', 'application/pdf') (legacy)

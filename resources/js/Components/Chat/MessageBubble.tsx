@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, CheckCheck, AlertCircle } from 'lucide-react';
 import { ImageMessage } from '@/Components/ImageMessage';
+import { MessageStatus } from '@/Components/MessageStatus';
 import type { Message, User } from '@/types/chat';
 import type { Variants } from 'framer-motion';
 
@@ -112,15 +113,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                     </div>
                 )}
 
-                {/* Timestamp & Read Status (for sent messages) */}
+                {/* Timestamp & Message Status (for sent messages) */}
                 {isSent && (
                     <div className="flex items-center justify-end gap-1 mt-1 text-xs opacity-70">
                         <span>{timestamp}</span>
-                        {message.read_at ? (
-                            <CheckCheck className="w-4 h-4 text-[#31a24c]" />
-                        ) : (
-                            <Check className="w-4 h-4" />
-                        )}
+                        <MessageStatus status={message.status || 'sent'} className="w-4 h-4" />
                     </div>
                 )}
 

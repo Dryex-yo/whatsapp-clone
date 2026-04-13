@@ -8,6 +8,7 @@ use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
 use App\Http\Resources\UserResource;
 use App\Events\MessageSent;
+use App\Events\ConversationOpened;
 use App\Events\UpdateUserPresence;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -66,6 +67,9 @@ class ChatController extends Controller
 
         // Authorize: User must be part of this conversation
         abort_unless($conversation->users->contains($user->id), 403);
+
+        // Dispatch ConversationOpened event to mark received messages as delivered
+        ConversationOpened::dispatch($conversation, $user);
 
         // Fetch paginated messages (50 per page, arrange newest last)
         $messages = $conversation->messages()
@@ -146,6 +150,7 @@ class ChatController extends Controller
             'user_id' => $user->id,
             'body' => $validated['body'],
             'type' => $type,
+            'status' => 'sent', // Default status for new messages
             'file_path' => $filePath,
             'file_size' => $fileSize,
             'mime_type' => $mimeType,

@@ -17,6 +17,7 @@ use Carbon\Carbon;
  * @property int $user_id Sender ID
  * @property string|null $body Message content
  * @property string $type Message type (text, image, file)
+ * @property string $status Message status (sent, delivered, read)
  * @property string|null $file_path Path to file/image
  * @property int|null $file_size Size in bytes
  * @property string|null $mime_type MIME type of file
@@ -40,6 +41,7 @@ class Message extends Model
         'user_id',
         'body',
         'type',
+        'status',
         'file_path',
         'file_size',
         'mime_type',
@@ -61,6 +63,7 @@ class Message extends Model
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'file_size' => 'integer',
+            'status' => 'string',
         ];
     }
 
@@ -127,14 +130,51 @@ class Message extends Model
     }
 
     /**
+     * Check if message is sent.
+     */
+    public function isSent(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => $this->status === 'sent',
+        );
+    }
+
+    /**
+     * Check if message is delivered.
+     */
+    public function isDelivered(): Attribute
+    {
+        return Attribute::make(
+            get: fn() => in_array($this->status, ['delivered', 'read']),
+        );
+    }
+
+    /**
+     * Mark message as delivered.
+     * Updates the status to 'delivered' when recipient opens the conversation.
+     * 
+     * @return void
+     */
+    public function markAsDelivered(): void
+    {
+        if ($this->status === 'sent') {
+            $this->update(['status' => 'delivered']);
+        }
+    }
+
+    /**
      * Mark message as read.
+     * Updates the status to 'read' and sets the read_at timestamp.
      * 
      * @return void
      */
     public function markAsRead(): void
     {
-        if (!$this->read_at) {
-            $this->update(['read_at' => now()]);
+        if ($this->status !== 'read') {
+            $this->update([
+                'status' => 'read',
+                'read_at' => now(),
+            ]);
         }
     }
 
