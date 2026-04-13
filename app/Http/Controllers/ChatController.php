@@ -200,4 +200,191 @@ class ChatController extends Controller
             'user' => new UserResource($user),
         ]);
     }
+
+    /**
+     * Global search across conversations and messages.
+     * Searches by:
+     * - User names (for group conversations)
+     * - Other user names (for 1-on-1 conversations)
+     * - Message content
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function globalSearch(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $query = $request->query('q', '');
+
+        if (strlen($query) < 2) {
+            return response()->json([
+                'conversations' => [],
+                'messages' => [],
+            ]);
+        }
+
+        // Search conversations by name and users
+        $conversationIds = $user->conversations()
+            ->pluck('conversation_id')
+            ->toArray();
+
+        // Search by conversation name
+        $conversationsByName = Conversation::where('is_group', true)
+            ->whereIn('id', $conversationIds)
+            ->where('name', 'like', "%{$query}%")
+            ->with(['lastMessage.user', 'users'])
+            ->get()
+            ->map(function ($c) {
+                return [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                    'display_name' => $c->name,
+                    'type' => 'group',
+                    'avatar' => $c->avatar,
+                    'last_message' => $c->lastMessage,
+                ];
+            });
+
+        // Search by user names in one-on-one conversations
+        $conversationsByUser = Conversation::where('is_group', false)
+            ->whereIn('id', $conversationIds)
+            ->with('users')
+            ->get()
+            ->filter(function ($conversation) use ($user, $query) {
+                $otherUser = $conversation->users->first(function ($u) use ($user) {
+                    return $u->id !== $user->id;
+                });
+                return $otherUser && stripos($otherUser->name, $query) !== false;
+            })
+            ->map(function ($c) use ($user) {
+                $otherUser = $c->users->first(function ($u) use ($user) {
+                    return $u->id !== $user->id;
+                });
+                return [
+                    'id' => $c->id,
+                    'name' => $otherUser->name ?? 'Unknown',
+                    'display_name' => $otherUser->name ?? 'Unknown',
+                    'type' => 'direct',
+                    'avatar' => $otherUser->avatar ?? null,
+                    'last_message' => $c->lastMessage,
+                ];
+            });
+
+        // Merge and deduplicate conversations
+        $allConversations = collect($conversationsByName)
+            ->merge($conversationsByUser)
+            ->unique('id')
+            ->values()
+            ->take(10);
+
+        // Search in messages
+        $messages = Message::whereIn('conversation_id', $conversationIds)
+            ->where('body', 'like', "%{$query}%")
+            ->where('type', 'text')
+            ->with(['user', 'conversation.users'])
+            ->orderBy('created_at', 'desc')
+            ->take(20)
+            ->get()
+            ->map(function ($m) {
+                return [
+                    'id' => $m->id,
+                    'body' => $m->body,
+                    'conversation_id' => $m->conversation_id,
+                    'user_id' => $m->user_id,
+                    'user_name' => $m->user->name,
+                    'created_at' => $m->created_at,
+                ];
+            });
+
+        return response()->json([
+            'conversations' => $allConversations,
+            'messages' => $messages,
+        ]);
+    }
+
+    /**
+     * Search messages within a specific conversation.
+     * 
+     * @param Request $request
+     * @param Conversation $conversation
+     * @return JsonResponse
+     */
+    public function searchChat(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = $request->user();
+        $query = $request->query('q', '');
+
+        // Authorize: User must be part of this conversation
+        abort_unless($conversation->users->contains($user->id), 403);
+
+        if (strlen($query) < 1) {
+            return response()->json([
+                'messages' => [],
+                'total' => 0,
+            ]);
+        }
+
+        // Search messages in this conversation
+        $messages = $conversation->messages()
+            ->where('body', 'like', "%{$query}%")
+            ->where('type', 'text')
+            ->with(['user', 'attachments'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'messages' => MessageResource::collection($messages),
+            'total' => $messages->count(),
+        ]);
+    }
+
+    /**
+     * Get messages for infinite scroll (pagination backwards in time).
+     * 
+     * @param Request $request
+     * @param Conversation $conversation
+     * @return JsonResponse
+     */
+    public function getMessages(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = $request->user();
+        
+        // Authorize: User must be part of this conversation
+        abort_unless($conversation->users->contains($user->id), 403);
+
+        $page = $request->query('page', 1);
+        $perPage = $request->query('per_page', 30);
+        $beforeId = $request->query('before_id', null);
+
+        $query = $conversation->messages()
+            ->with(['user', 'attachments']);
+
+        // If before_id provided, get messages before that ID (for infinite scroll)
+        if ($beforeId) {
+            $beforeMessage = Message::find($beforeId);
+            if ($beforeMessage) {
+                $query->where('created_at', '<', $beforeMessage->created_at)
+                    ->orWhere(function ($q) use ($beforeMessage) {
+                        $q->where('created_at', '=', $beforeMessage->created_at)
+                            ->where('id', '<', $beforeMessage->id);
+                    });
+            }
+        }
+
+        $messages = $query->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'messages' => MessageResource::collection(array_reverse($messages->items())),
+            'pagination' => [
+                'current_page' => $messages->currentPage(),
+                'last_page' => $messages->lastPage(),
+                'total' => $messages->total(),
+                'per_page' => $messages->perPage(),
+                'has_more' => $messages->hasMorePages(),
+            ],
+        ]);
+    }
 }
+

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, MoreVertical, MessageSquare, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useGlobalSearch } from '@/hooks/useSearch';
 import type { Conversation, User } from '@/types/chat';
 
 export interface ConversationItemProps {
@@ -90,11 +91,34 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
     onSelectConversation,
     onSearchChange,
 }) => {
-    const [searchQuery, setSearchQuery] = useState('');
+    const { 
+        searchQuery, 
+        handleSearch, 
+        results, 
+        isLoading 
+    } = useGlobalSearch();
 
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchQuery(e.target.value);
-        onSearchChange(e.target.value);
+    // Use search results if query exists, otherwise use provided conversations
+    const displayedConversations = useMemo(() => {
+        if (searchQuery.length >= 2) {
+            // When searching, return search results
+            const searchConversations = results.conversations.map(c => ({
+                id: c.id,
+                name: c.display_name,
+                is_group: c.type === 'group',
+                avatar: c.avatar,
+                other_user: c.type === 'direct' ? { name: c.display_name, avatar: c.avatar } : undefined,
+                unread_count: 0,
+            } as unknown as Conversation));
+            return searchConversations;
+        }
+        return conversations;
+    }, [searchQuery, results.conversations, conversations]);
+
+    const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const query = e.target.value;
+        handleSearch(query);
+        onSearchChange(query);
     };
 
     return (
@@ -152,9 +176,18 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                         type="text"
                         placeholder="Search or start new chat"
                         value={searchQuery}
-                        onChange={handleSearchChange}
+                        onChange={handleSearchInput}
                         className="bg-transparent border-none focus:ring-0 text-sm w-full text-white placeholder-gray-500 outline-none"
                     />
+                    {isLoading && (
+                        <motion.div 
+                            animate={{ rotate: 360 }} 
+                            transition={{ repeat: Infinity, duration: 1 }}
+                            className="ml-2"
+                        >
+                            <MessageSquare className="w-4 h-4 text-[#005c4b]" />
+                        </motion.div>
+                    )}
                 </motion.div>
             </motion.div>
 
@@ -163,18 +196,19 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 className="flex-1 overflow-y-auto custom-scrollbar"
                 layout
             >
-                {conversations.length === 0 ? (
+                {displayedConversations.length === 0 && results.messages.length === 0 ? (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         className="flex flex-col items-center justify-center h-full text-gray-500 gap-3"
                     >
                         <MessageSquare className="w-12 h-12 opacity-50" />
-                        <p className="text-sm">No conversations yet</p>
+                        <p className="text-sm">{searchQuery ? 'No results found' : 'No conversations yet'}</p>
                     </motion.div>
                 ) : (
                     <motion.div layout>
-                        {conversations.map((conv, idx) => (
+                        {/* Conversation Search Results */}
+                        {displayedConversations.map((conv, idx) => (
                             <motion.div
                                 key={conv.id}
                                 initial={{ opacity: 0, x: -20 }}
@@ -188,6 +222,40 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                                 />
                             </motion.div>
                         ))}
+
+                        {/* Message Search Results Section */}
+                        {searchQuery && results.messages.length > 0 && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="border-t border-gray-800 mt-2 pt-2"
+                            >
+                                <div className="px-3 py-2 text-xs text-gray-500 font-500">
+                                    Messages ({results.messages.length})
+                                </div>
+                                {results.messages.slice(0, 5).map((msg, idx) => (
+                                    <motion.button
+                                        key={msg.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: idx * 0.05 }}
+                                        onClick={() => onSelectConversation(msg.conversation_id)}
+                                        className="w-full px-3 py-2 text-left hover:bg-[#2a3942] transition-colors text-sm border-b border-gray-800 last:border-b-0"
+                                    >
+                                        <div className="flex gap-2">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-gray-300 text-xs font-500 truncate">
+                                                    {msg.user_name}
+                                                </p>
+                                                <p className="text-gray-400 text-xs truncate line-clamp-2">
+                                                    {msg.body}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </motion.button>
+                                ))}
+                            </motion.div>
+                        )}
                     </motion.div>
                 )}
             </motion.div>

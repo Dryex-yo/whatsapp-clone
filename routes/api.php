@@ -14,6 +14,19 @@ Route::middleware('auth:sanctum')->group(function () {
     })->name('user.profile');
 
     /**
+     * Search Routes
+     * Global search and search within conversations
+     */
+    Route::get('/search', [ChatController::class, 'globalSearch'])
+        ->name('search.global');
+
+    Route::get('/conversations/{conversation}/search', [ChatController::class, 'searchChat'])
+        ->name('search.chat');
+
+    Route::get('/conversations/{conversation}/messages', [ChatController::class, 'getMessages'])
+        ->name('messages.get');
+
+    /**
      * Chat/Message Routes
      * Note: Uses implicit model binding for {conversation} parameter
      */

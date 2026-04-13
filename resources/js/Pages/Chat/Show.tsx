@@ -36,12 +36,14 @@ export default function ChatShowPage() {
     const conversationsArray = Array.isArray(initialConversations) ? initialConversations : [];
     const messagesArray = Array.isArray(initialMessages) ? initialMessages : [];
 
-    const [filteredConversations, setFilteredConversations] = useState<Conversation[]>(conversationsArray);
     const [messages, setMessages] = useState<Message[]>(messagesArray);
     const [isLoading, setIsLoading] = useState(false);
     const [isSending, setIsSending] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(props.pagination?.current_page || 1);
+    const [hasMoreMessages, setHasMoreMessages] = useState(
+        props.pagination ? currentPage < props.pagination.last_page : false
+    );
 
     // Setup presence tracking for online users
     const { onlineUsers } = usePresence(activeConversation?.id, currentUser);
@@ -86,23 +88,6 @@ export default function ChatShowPage() {
         router.get(`/chat/${id}`);
     }, []);
 
-    const handleSearchChange = useCallback((query: string) => {
-        if (!query.trim()) {
-            setFilteredConversations(conversationsArray);
-            return;
-        }
-
-        const lowerQuery = query.toLowerCase();
-        const filtered = conversationsArray.filter((conv) => {
-            const name = (conv.name || conv.other_user?.name || '').toLowerCase();
-            const lastMessage = (conv.last_message?.body || '').toLowerCase();
-
-            return name.includes(lowerQuery) || lastMessage.includes(lowerQuery);
-        });
-
-        setFilteredConversations(filtered);
-    }, [conversationsArray]);
-
     const handleSendMessage = useCallback(
         async (body: string, file?: File) => {
             if (!activeConversation?.id || !body.trim()) return;
@@ -135,15 +120,6 @@ export default function ChatShowPage() {
 
                 // Add new message to local state
                 setMessages((prev) => [...prev, newMessage]);
-
-                // Update conversation's last message in sidebar
-                setFilteredConversations((prev) =>
-                    prev.map((conv) =>
-                        conv.id === activeConversation.id
-                            ? { ...conv, last_message: newMessage }
-                            : conv
-                    )
-                );
             } catch (error) {
                 console.error('Failed to send message:', error);
                 // You can add a toast notification here
@@ -155,26 +131,33 @@ export default function ChatShowPage() {
     );
 
     const handleLoadMore = useCallback(async () => {
-        if (currentPage >= props.pagination.last_page) return;
+        if (!hasMoreMessages || isLoading) return;
 
         setIsLoading(true);
         try {
             const nextPage = currentPage + 1;
             const response = await fetch(
-                `/api/conversations/${activeConversation.id}/messages?page=${nextPage}&per_page=50`
+                `/api/conversations/${activeConversation.id}/messages?page=${nextPage}&per_page=30`
             );
 
             if (!response.ok) throw new Error('Failed to load more messages');
 
             const data = await response.json();
-            setMessages((prev) => [...data.data, ...prev]);
+            
+            // Prepend older messages (they come chronologically before current messages)
+            setMessages((prev) => [...data.messages, ...prev]);
             setCurrentPage(nextPage);
+            
+            // Update hasMoreMessages based on pagination response
+            if (data.pagination) {
+                setHasMoreMessages(data.pagination.has_more || nextPage < data.pagination.last_page);
+            }
         } catch (error) {
             console.error('Failed to load more messages:', error);
         } finally {
             setIsLoading(false);
         }
-    }, [currentPage, props.pagination.last_page, activeConversation.id]);
+    }, [currentPage, hasMoreMessages, isLoading, activeConversation.id]);
 
     return (
         <motion.div
@@ -185,11 +168,11 @@ export default function ChatShowPage() {
             {/* Sidebar - Hidden on mobile */}
             <div className="hidden md:flex md:flex-col w-[400px]">
                 <ConversationSidebar
-                    conversations={filteredConversations}
+                    conversations={conversationsArray}
                     activeConversationId={activeConversation.id}
                     currentUser={currentUser}
                     onSelectConversation={handleSelectConversation}
-                    onSearchChange={handleSearchChange}
+                    onSearchChange={() => {}} // Search is now handled by useGlobalSearch hook in sidebar
                 />
             </div>
 
@@ -199,13 +182,15 @@ export default function ChatShowPage() {
                     conversation={activeConversation}
                     currentUser={currentUser}
                     messages={messages}
-                    isLoading={isLoading}
+                    isLoading={isSending}
                     onSendMessage={handleSendMessage}
                     onTypingStart={broadcastTypingStart}
                     onTypingStop={broadcastTypingStop}
                     isTyping={isTyping}
                     typingUsers={typingUsers}
                     onlineUsers={onlineUsers}
+                    onLoadMoreMessages={handleLoadMore}
+                    hasMoreMessages={hasMoreMessages}
                 />
             </div>
 

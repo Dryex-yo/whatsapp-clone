@@ -4,6 +4,8 @@ import { MessageSquare } from 'lucide-react';
 import { ChatHeader, ChatHeaderOnly } from './ChatHeader';
 import { MessageBubble, MessageGroup, DateSeparator, TypingIndicator } from './MessageBubble';
 import { MessageInput } from './MessageInput';
+import { SearchInChat, useSearchInChat } from '@/Components/SearchInChat';
+import { useInfiniteScroll, useScrollPosition } from '@/hooks/useInfiniteScroll';
 import type { Conversation, Message, User } from '@/types/chat';
 
 export interface ChatWindowProps {
@@ -17,6 +19,8 @@ export interface ChatWindowProps {
     isTyping?: boolean;
     typingUsers?: Record<number, string>;
     onlineUsers?: Record<number, User>;
+    onLoadMoreMessages?: () => Promise<void>;
+    hasMoreMessages?: boolean;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -30,17 +34,43 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     isTyping = false,
     typingUsers = {},
     onlineUsers = {},
+    onLoadMoreMessages,
+    hasMoreMessages = false,
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
     const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const { saveScrollPosition, restoreScrollPosition } = useScrollPosition(messagesContainerRef);
+    const { isSearchOpen, setIsSearchOpen } = useSearchInChat();
 
-    // Auto-scroll to bottom when new messages arrive
+    // Infinite scroll sentinel reference
+    const sentinelRef = useInfiniteScroll({
+        onLoadMore: async () => {
+            if (onLoadMoreMessages) {
+                setIsLoadingMore(true);
+                saveScrollPosition();
+                try {
+                    await onLoadMoreMessages();
+                    // Restore scroll position after messages load
+                    setTimeout(restoreScrollPosition, 100);
+                } catch (error) {
+                    console.error('Error loading more messages:', error);
+                } finally {
+                    setIsLoadingMore(false);
+                }
+            }
+        },
+        hasMore: hasMoreMessages,
+        isLoading: isLoadingMore,
+    });
+
+    // Auto-scroll to bottom when new messages arrive (only if already at bottom)
     useEffect(() => {
         if (isScrolledToBottom && messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [messages, isTyping, isScrolledToBottom]);
+    }, [messages.length, isTyping, isScrolledToBottom]);
 
     const handleScroll = () => {
         if (messagesContainerRef.current) {
@@ -110,6 +140,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 onlineUsers={onlineUsers}
             />
 
+            {/* Search in Chat Overlay */}
+            {isSearchOpen && (
+                <SearchInChat 
+                    conversationId={conversation.id}
+                    onClose={() => setIsSearchOpen(false)}
+                />
+            )}
+
             {/* Messages Container */}
             <motion.div
                 ref={messagesContainerRef}
@@ -152,6 +190,29 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     </motion.div>
                 ) : (
                     <AnimatePresence>
+                        {/* Infinite Scroll Sentinel - Triggers when scrolled to top */}
+                        <motion.div
+                            ref={sentinelRef}
+                            className="h-4"
+                            layout
+                        />
+
+                        {/* Loading indicator for more messages */}
+                        {isLoadingMore && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="flex items-center justify-center py-4"
+                            >
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ repeat: Infinity, duration: 1 }}
+                                >
+                                    <MessageSquare className="w-5 h-5 text-[#005c4b]" />
+                                </motion.div>
+                            </motion.div>
+                        )}
+
                         {groupedMessages.map((group, groupIdx) => (
                             <motion.div
                                 key={group.date.getTime()}
