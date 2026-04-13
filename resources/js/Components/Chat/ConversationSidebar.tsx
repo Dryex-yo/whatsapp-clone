@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Search, MoreVertical, MessageSquare, Phone } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useGlobalSearch } from '@/hooks/useSearch';
+import { ThemeToggle } from '@/Components/ThemeToggle';
 import type { Conversation, User } from '@/types/chat';
 
 export interface ConversationItemProps {
@@ -153,6 +154,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                     >
                         <MessageSquare className="w-5 h-5" />
                     </motion.button>
+                    <ThemeToggle />
                     <motion.button
                         whileHover={{ scale: 1.1, color: '#00d084' }}
                         className="transition"

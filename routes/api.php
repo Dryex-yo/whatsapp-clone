@@ -13,6 +13,21 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     })->name('user.profile');
 
+    Route::put('/user/theme', function (Request $request) {
+        $validated = $request->validate([
+            'theme' => 'required|in:light,dark,system',
+        ]);
+
+        $request->user()->update([
+            'theme' => $validated['theme'],
+        ]);
+
+        return response()->json([
+            'message' => 'Theme updated successfully',
+            'theme' => $request->user()->theme,
+        ]);
+    })->name('user.theme.update');
+
     /**
      * Search Routes
      * Global search and search within conversations

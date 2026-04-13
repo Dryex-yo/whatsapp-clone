@@ -2,14 +2,18 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ChatController;
-use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Foundation\Application;
 
 /**
  * Public Routes
  */
 Route::get('/', function () {
+    if (auth()->check()) {
+        return redirect()->route('chat.index');
+    }
+
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
@@ -19,28 +23,20 @@ Route::get('/', function () {
 })->name('home');
 
 /**
- * Dashboard Route (authenticated + verified users only)
+ * Authenticated Routes
  */
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::middleware(['auth', 'verified'])->group(function () {
+    
+    // Fitur Chat (Halaman Utama setelah Login)
+    Route::prefix('chat')->group(function () {
+        Route::get('/', [ChatController::class, 'index'])->name('chat.index');
+        Route::get('/{conversation}', [ChatController::class, 'show'])->name('chat.show');
+    });
 
-/**
- * Profile Management Routes (authenticated users)
- */
-Route::middleware('auth')->group(function () {
+    // Profile Management
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
-
-/**
- * Chat Routes (authenticated + verified users)
- * Note: Uses implicit model binding for {conversation} parameter
- */
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/chat', [ChatController::class, 'index'])->name('chat.index');
-    Route::get('/chat/{conversation}', [ChatController::class, 'show'])->name('chat.show');
 });
 
 require __DIR__.'/auth.php';

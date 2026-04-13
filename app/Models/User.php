@@ -42,6 +42,7 @@ class User extends Authenticatable
         'avatar',
         'phone',
         'last_seen',
+        'theme',
     ];
 
     /**
