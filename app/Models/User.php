@@ -130,4 +130,72 @@ class User extends Authenticatable
             get: fn() => $this->isOnline() ? 'online' : 'offline',
         );
     }
+
+    /**
+     * Get all users blocked by this user.
+     */
+    public function blockedUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            User::class,
+            'blocked_users',
+            'user_id',
+            'blocked_user_id'
+        )->withTimestamps()
+         ->withPivot('reason')
+         ->as('block');
+    }
+
+    /**
+     * Get all users who have blocked this user.
+     */
+    public function blockedByUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            User::class,
+            'blocked_users',
+            'blocked_user_id',
+            'user_id'
+        )->withTimestamps()
+         ->withPivot('reason')
+         ->as('block');
+    }
+
+    /**
+     * Check if this user has blocked another user.
+     */
+    public function hasBlocked(User|int $user): bool
+    {
+        $userId = $user instanceof User ? $user->id : $user;
+        return $this->blockedUsers()->where('blocked_user_id', $userId)->exists();
+    }
+
+    /**
+     * Check if this user is blocked by another user.
+     */
+    public function isBlockedBy(User|int $user): bool
+    {
+        $userId = $user instanceof User ? $user->id : $user;
+        return $this->blockedByUsers()->where('user_id', $userId)->exists();
+    }
+
+    /**
+     * Block a user.
+     */
+    public function blockUser(User|int $user, string|null $reason = null): void
+    {
+        $userId = $user instanceof User ? $user->id : $user;
+        if (!$this->hasBlocked($userId)) {
+            $this->blockedUsers()->attach($userId, ['reason' => $reason]);
+        }
+    }
+
+    /**
+     * Unblock a user.
+     */
+    public function unblockUser(User|int $user): void
+    {
+        $userId = $user instanceof User ? $user->id : $user;
+        $this->blockedUsers()->detach($userId);
+    }
 }

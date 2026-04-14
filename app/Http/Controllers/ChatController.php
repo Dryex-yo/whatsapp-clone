@@ -4,12 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\User;
 use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
 use App\Http\Resources\UserResource;
 use App\Events\MessageSent;
 use App\Events\ConversationOpened;
 use App\Events\UpdateUserPresence;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Inertia\Inertia;
 use Inertia\Response;
 use Illuminate\Http\Request;
@@ -22,6 +24,8 @@ use Illuminate\Http\JsonResponse;
  */
 class ChatController extends Controller
 {
+    use AuthorizesRequests;
+
     /**
      * Display a listing of all conversations for the authenticated user.
      * 
@@ -111,6 +115,9 @@ class ChatController extends Controller
     /**
      * Store a new message in a conversation.
      * 
+     * Enforces MessagePolicy to prevent blocked users from messaging.
+     * Supports encrypted messages and ephemeral (disappearing) messages.
+     * 
      * @param Request $request
      * @param Conversation $conversation
      * @return JsonResponse
@@ -122,14 +129,21 @@ class ChatController extends Controller
         // Authorize: User must be part of this conversation
         abort_unless($conversation->users->contains($user->id), 403);
 
-        // Validate input - body can be empty if file is provided (for voice/media-only messages)
+        // Authorize: Check if user is allowed to send messages (blocked users cannot)
+        // This also checks if user is blocked by conversation members
+        $this->authorize('create', Message::class, $conversation);
+
+        // Validate input
         $validated = $request->validate([
             'body' => 'nullable|string|max:5000',
+            'encrypted_body' => 'nullable|string',
+            'is_encrypted' => 'nullable|boolean',
+            'is_ephemeral' => 'nullable|boolean',
             'file' => 'nullable|file|max:52428800', // 50MB max
         ]);
 
         // At least body OR file must be provided
-        if (empty($validated['body']) && !$request->hasFile('file')) {
+        if (empty($validated['body']) && empty($validated['encrypted_body']) && !$request->hasFile('file')) {
             return response()->json([
                 'message' => 'Message body or file is required',
             ], 422);
@@ -162,17 +176,27 @@ class ChatController extends Controller
             $mimeType = $file->getMimeType();
         }
 
-        // Create message
-        $message = Message::create([
+        // Create message with encryption and ephemeral support
+        $messageData = [
             'conversation_id' => $conversation->id,
             'user_id' => $user->id,
             'body' => $validated['body'] ?? '',
+            'encrypted_body' => $validated['encrypted_body'] ?? null,
+            'is_encrypted' => $validated['is_encrypted'] ?? false,
             'type' => $type,
-            'status' => 'sent', // Default status for new messages
+            'status' => 'sent',
             'file_path' => $filePath,
             'file_size' => $fileSize,
             'mime_type' => $mimeType,
-        ]);
+            'is_ephemeral' => $validated['is_ephemeral'] ?? false,
+        ];
+
+        // Set disappears_at if ephemeral
+        if ($validated['is_ephemeral'] ?? false) {
+            $messageData['disappears_at'] = now()->addHours(24);
+        }
+
+        $message = Message::create($messageData);
 
         // Load user relationship for response
         $message->load(['user', 'attachments']);
@@ -656,6 +680,99 @@ class ChatController extends Controller
             'messages' => MessageResource::collection($starredMessages),
             'total' => $starredMessages->count(),
         ]);
+    }
+
+    /**
+     * Block a user.
+     * Prevents the blocked user from sending messages to the blocker in conversations.
+     *
+     * @param Request $request
+     * @param User $user
+     * @return JsonResponse
+     */
+    public function blockUser(Request $request, User $user): JsonResponse
+    {
+        $currentUser = $request->user();
+
+        // Cannot block self
+        if ($currentUser->id === $user->id) {
+            return response()->json([
+                'message' => 'You cannot block yourself',
+            ], 422);
+        }
+
+        // Validate input
+        $validated = $request->validate([
+            'reason' => 'nullable|string|max:255',
+        ]);
+
+        // Block the user
+        $currentUser->blockUser($user, $validated['reason'] ?? null);
+
+        return response()->json([
+            'message' => 'User blocked successfully',
+            'blocked_user' => new UserResource($user),
+        ], 200);
+    }
+
+    /**
+     * Unblock a user.
+     * Allows the unblocked user to send messages again.
+     *
+     * @param Request $request
+     * @param User $user
+     * @return JsonResponse
+     */
+    public function unblockUser(Request $request, User $user): JsonResponse
+    {
+        $currentUser = $request->user();
+
+        // Unblock the user
+        $currentUser->unblockUser($user);
+
+        return response()->json([
+            'message' => 'User unblocked successfully',
+            'unblocked_user' => new UserResource($user),
+        ], 200);
+    }
+
+    /**
+     * Get list of blocked users.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getBlockedUsers(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        $blockedUsers = $user->blockedUsers()
+            ->select('users.id', 'users.name', 'users.email', 'users.avatar')
+            ->get();
+
+        return response()->json([
+            'blocked_users' => UserResource::collection($blockedUsers),
+            'total' => $blockedUsers->count(),
+        ], 200);
+    }
+
+    /**
+     * Check if user is blocked by the current user.
+     *
+     * @param Request $request
+     * @param User $user
+     * @return JsonResponse
+     */
+    public function isUserBlocked(Request $request, User $user): JsonResponse
+    {
+        $currentUser = $request->user();
+
+        $isBlocked = $currentUser->hasBlocked($user);
+
+        return response()->json([
+            'is_blocked' => $isBlocked,
+            'user_id' => $user->id,
+        ], 200);
     }
 }
 

@@ -8,6 +8,7 @@ import { GroupSettingsSidebar } from '@/Components/Chat/GroupSettingsSidebar';
 import { usePresence } from '@/hooks/usePresence';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useWebNotifications } from '@/hooks/useWebNotifications';
+import { encryptMessage, generateEncryptionKey } from '@/utils/encryption';
 import type { Conversation, Message, User } from '@/types/chat';
 import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
@@ -144,7 +145,31 @@ export default function ChatShowPage() {
 
             setIsSending(true);
             const formData = new FormData();
-            formData.append('body', body);
+            
+            // Encrypt the message body if it's a text message
+            if (body.trim()) {
+                try {
+                    const encryptionKey = generateEncryptionKey(currentUser.id, currentUser.email);
+                    const encryptedBody = encryptMessage(body.trim(), encryptionKey);
+                    
+                    // Send encrypted body instead of plain body
+                    formData.append('encrypted_body', encryptedBody);
+                    formData.append('is_encrypted', 'true');
+                    formData.append('body', ''); // Keep for backward compatibility
+                } catch (error) {
+                    console.error('Failed to encrypt message:', error);
+                    setIsSending(false);
+                    alert('Failed to encrypt message. Please try again.');
+                    return;
+                }
+            } else {
+                formData.append('body', body);
+                formData.append('is_encrypted', 'false');
+            }
+            
+            // Mark message as ephemeral (disappears in 24 hours)
+            formData.append('is_ephemeral', 'true');
+            
             if (file) {
                 formData.append('file', file);
             }
@@ -177,7 +202,7 @@ export default function ChatShowPage() {
                 setIsSending(false);
             }
         },
-        [activeConversation?.id]
+        [activeConversation?.id, currentUser]
     );
 
     const handleLoadMore = useCallback(async () => {

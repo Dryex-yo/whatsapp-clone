@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Console\Scheduling\Schedule;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -19,6 +20,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         //
+    })
+    ->withSchedule(function (Schedule $schedule): void {
+        // Delete ephemeral messages that have expired (every minute for precision)
+        $schedule->command('messages:delete-disappearing')
+            ->everyMinute()
+            ->withoutOverlapping()
+            ->onOneServer();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

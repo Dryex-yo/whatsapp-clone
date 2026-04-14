@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Check, CheckCheck, AlertCircle } from 'lucide-react';
 import { ImageMessage } from '@/Components/ImageMessage';
@@ -6,6 +6,7 @@ import { AudioPlayer } from '@/Components/Chat/AudioPlayer';
 import { MessageStatus } from '@/Components/MessageStatus';
 import { StarButton } from '@/Components/Chat/StarButton';
 import { getUserColor } from '@/utils/colorUtils';
+import { decryptMessage, generateEncryptionKey } from '@/utils/encryption';
 import type { Message, User, Conversation } from '@/types/chat';
 import type { Variants } from 'framer-motion';
 
@@ -23,6 +24,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     isGroup = false
 }) => {
     const [isStarred, setIsStarred] = useState(message.is_starred || false);
+    const [displayedBody, setDisplayedBody] = useState<string>(message.body || '');
+    const [decryptionError, setDecryptionError] = useState<string | null>(null);
+    
     const isSent = message.user_id === currentUser.id;
     const timestamp = message.created_at ? new Date(message.created_at).toLocaleTimeString('en-US', {
         hour: '2-digit',
@@ -30,6 +34,27 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     }) : '';
 
     const senderColor = getUserColor(message.user_id);
+
+    // Decrypt message if it's encrypted
+    useEffect(() => {
+        if (message.type === 'text' && (message as any).is_encrypted && (message as any).encrypted_body) {
+            try {
+                // Get the encryption key for the sender
+                const senderEmail = message.user?.email || '';
+                const encryptionKey = generateEncryptionKey(message.user_id, senderEmail);
+                const decrypted = decryptMessage((message as any).encrypted_body, encryptionKey);
+                setDisplayedBody(decrypted);
+                setDecryptionError(null);
+            } catch (error) {
+                console.error('Failed to decrypt message:', error);
+                setDecryptionError('Failed to decrypt message');
+                setDisplayedBody('[Encrypted Message]');
+            }
+        } else {
+            setDisplayedBody(message.body || '');
+            setDecryptionError(null);
+        }
+    }, [message, message.user?.email]);
 
     const containerVariants: Variants = {
         hidden: { opacity: 0, y: 10 },
@@ -113,7 +138,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 
                     {/* Message Type: Text */}
                     {message.type === 'text' && (
-                        <p className="text-sm break-words">{message.body}</p>
+                        <div className="flex items-center gap-2">
+                            <p className="text-sm break-words">{displayedBody}</p>
+                            {decryptionError && (
+                                <AlertCircle className="w-4 h-4 text-orange-400" title={decryptionError} />
+                            )}
+                            {(message as any).is_encrypted && !decryptionError && (
+                                <span className="text-xs opacity-60" title="End-to-End Encrypted">🔒</span>
+                            )}
+                        </div>
                     )}
 
                     {/* Message Type: Image (legacy) */}

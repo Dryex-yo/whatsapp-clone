@@ -17,6 +17,8 @@ use Carbon\Carbon;
  * @property int $conversation_id
  * @property int $user_id Sender ID
  * @property string|null $body Message content
+ * @property string|null $encrypted_body Encrypted message body (End-to-End Encryption)
+ * @property bool $is_encrypted Flag indicating if message is encrypted
  * @property string $type Message type (text, image, file)
  * @property string $status Message status (sent, delivered, read)
  * @property string|null $file_path Path to file/image
@@ -25,6 +27,8 @@ use Carbon\Carbon;
  * @property Carbon|null $read_at Read receipt timestamp
  * @property Carbon|null $edited_at When message was edited
  * @property Carbon|null $deleted_at Soft delete timestamp
+ * @property Carbon|null $disappears_at When the message should be auto-deleted (Ephemeral Messages)
+ * @property bool $is_ephemeral Flag indicating if message is ephemeral (disappearing)
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -41,6 +45,8 @@ class Message extends Model
         'conversation_id',
         'user_id',
         'body',
+        'encrypted_body',
+        'is_encrypted',
         'type',
         'status',
         'file_path',
@@ -48,6 +54,8 @@ class Message extends Model
         'mime_type',
         'read_at',
         'edited_at',
+        'disappears_at',
+        'is_ephemeral',
     ];
 
     /**
@@ -61,10 +69,13 @@ class Message extends Model
             'read_at' => 'datetime',
             'edited_at' => 'datetime',
             'deleted_at' => 'datetime',
+            'disappears_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
             'file_size' => 'integer',
             'status' => 'string',
+            'is_encrypted' => 'boolean',
+            'is_ephemeral' => 'boolean',
         ];
     }
 
@@ -227,5 +238,83 @@ class Message extends Model
         $bytes /= (1 << (10 * $pow));
 
         return round($bytes, $precision) . ' ' . $units[$pow];
+    }
+
+    /**
+     * Mark message as ephemeral (disappearing in 24 hours).
+     * Sets the disappears_at timestamp and is_ephemeral flag.
+     * 
+     * @return void
+     */
+    public function markAsEphemeral(): void
+    {
+        if (!$this->is_ephemeral) {
+            $this->update([
+                'is_ephemeral' => true,
+                'disappears_at' => now()->addHours(24),
+            ]);
+        }
+    }
+
+    /**
+     * Check if message is ephemeral (disappearing).
+     * 
+     * @return bool
+     */
+    public function isEphemeral(): bool
+    {
+        return $this->is_ephemeral && $this->disappears_at !== null;
+    }
+
+    /**
+     * Check if message should have disappeared (past disappears_at time).
+     * 
+     * @return bool
+     */
+    public function shouldBeDeleted(): bool
+    {
+        return $this->is_ephemeral && $this->disappears_at && $this->disappears_at->isPast();
+    }
+
+    /**
+     * Get time remaining before message disappears.
+     * Returns null if not ephemeral or already disappeared.
+     * 
+     * @return string|null
+     */
+    public function timeUntilDisappears(): ?string
+    {
+        if (!$this->isEphemeral()) {
+            return null;
+        }
+
+        if ($this->shouldBeDeleted()) {
+            return 'Expired';
+        }
+
+        return $this->disappears_at->diffForHumans();
+    }
+
+    /**
+     * Mark message as encrypted.
+     * 
+     * @param bool $encrypted
+     * @return void
+     */
+    public function setEncryption(bool $encrypted = true): void
+    {
+        if ($this->is_encrypted !== $encrypted) {
+            $this->update(['is_encrypted' => $encrypted]);
+        }
+    }
+
+    /**
+     * Check if message is encrypted.
+     * 
+     * @return bool
+     */
+    public function isEncrypted(): bool
+    {
+        return $this->is_encrypted && $this->encrypted_body !== null;
     }
 }

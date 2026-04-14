@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MediaController;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,22 @@ Route::middleware('auth:sanctum')->group(function () {
             'theme' => $request->user()->theme,
         ]);
     })->name('user.theme.update');
+
+    /**
+     * Block Management Routes
+     * Block, unblock, and manage blocked users
+     */
+    Route::post('/users/{user}/block', [ChatController::class, 'blockUser'])
+        ->name('users.block');
+
+    Route::post('/users/{user}/unblock', [ChatController::class, 'unblockUser'])
+        ->name('users.unblock');
+
+    Route::get('/users/blocked', [ChatController::class, 'getBlockedUsers'])
+        ->name('users.blocked-list');
+
+    Route::get('/users/{user}/is-blocked', [ChatController::class, 'isUserBlocked'])
+        ->name('users.is-blocked');
 
     /**
      * Search Routes
