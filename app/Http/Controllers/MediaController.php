@@ -11,19 +11,33 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Drivers\GdDriver;
 
 /**
- * MediaController - Handles media uploads and storage
+ * MediaController - Handles media uploads and storage with optimization
  * 
- * Manages file uploads for messages, generates thumbnails, and returns asset URLs
+ * Manages file uploads for messages with automatic image optimization:
+ * - Converts images to WebP format for 25-40% better compression
+ * - Auto-resizes large images to prevent storage bloat
+ * - Generates optimized thumbnails for preview
+ * - Reduces bandwidth usage for high-traffic applications
  */
 class MediaController extends Controller
 {
+    private const MAX_IMAGE_WIDTH = 2048;
+    private const MAX_IMAGE_HEIGHT = 2048;
+    private const THUMBNAIL_SIZE = 300;
+    private const WEBP_QUALITY = 80; // Balance between quality and file size
+    private const WEBP_THUMBNAIL_QUALITY = 75;
+
     /**
-     * Upload media for a message
+     * Upload media for a message with optimization
      * 
-     * Validates file, processes it (generates thumbnails for images),
-     * and returns attachment resource
+     * - Automatically converts images to WebP format
+     * - Compresses to reduce storage and bandwidth
+     * - Generates optimized thumbnails
+     * - Returns attachment resource
      * 
      * @param Request $request
      * @param Conversation $conversation
@@ -57,17 +71,27 @@ class MediaController extends Controller
                 Storage::disk('public')->makeDirectory($directory);
             }
 
-            // Store file
-            $path = $file->store($directory, 'public');
-
-            // Extract image dimensions and generate thumbnail if image
+            // Process and store file
+            $path = null;
             $width = null;
             $height = null;
             $thumbnailPath = null;
+            $optimizedSize = null;
 
             if ($type === 'image') {
-                [$width, $height] = $this->getImageDimensions($path);
-                $thumbnailPath = $this->generateThumbnail($path, $width, $height);
+                // Handle image: optimize, resize, and convert to WebP
+                [$path, $optimizedSize, $width, $height] = $this->storeOptimizedImage(
+                    $file,
+                    $directory,
+                    $fileName
+                );
+
+                // Generate optimized thumbnail
+                $thumbnailPath = $this->generateOptimizedThumbnail($path, $width, $height);
+            } else {
+                // Handle non-image files normally
+                $path = $file->store($directory, 'public');
+                $optimizedSize = $fileSize;
             }
 
             // Return response without creating message
@@ -79,8 +103,10 @@ class MediaController extends Controller
                 'success' => true,
                 'file_name' => $fileName,
                 'path' => $path,
-                'mime_type' => $mimeType,
-                'size' => $fileSize,
+                'mime_type' => $type === 'image' ? 'image/webp' : $mimeType,
+                'size' => $optimizedSize ?? $fileSize,
+                'original_size' => $fileSize,
+                'compression_ratio' => $optimizedSize ? round(100 - (($optimizedSize / $fileSize) * 100), 2) : 0,
                 'type' => $type,
                 'width' => $width,
                 'height' => $height,
@@ -94,6 +120,120 @@ class MediaController extends Controller
                 'message' => 'Failed to upload file: ' . $e->getMessage(),
             ], 422);
         }
+    }
+
+    /**
+     * Store and optimize image: resize and convert to WebP
+     * 
+     * @return array [$path, $optimizedSize, $width, $height]
+     */
+    private function storeOptimizedImage(
+        \Illuminate\Http\UploadedFile $file,
+        string $directory,
+        string $originalFileName
+    ): array {
+        try {
+            $manager = new ImageManager(new GdDriver());
+            $image = $manager->read($file->getPathname());
+
+            // Get original dimensions
+            $width = $image->width();
+            $height = $image->height();
+
+            // Resize if image is too large
+            if ($width > self::MAX_IMAGE_WIDTH || $height > self::MAX_IMAGE_HEIGHT) {
+                $image->scaleDown(
+                    width: self::MAX_IMAGE_WIDTH,
+                    height: self::MAX_IMAGE_HEIGHT
+                );
+
+                $width = $image->width();
+                $height = $image->height();
+            }
+
+            // Convert to WebP with optimized quality
+            $image->toWebp(self::WEBP_QUALITY);
+
+            // Generate new filename with .webp extension
+            $pathInfo = pathinfo($originalFileName);
+            $webpFileName = "{$pathInfo['filename']}_" . time() . '.webp';
+            $storagePath = "{$directory}/{$webpFileName}";
+
+            // Get full path and save
+            $disk = Storage::disk('public');
+            $fullPath = $disk->path($storagePath);
+
+            // Ensure directory exists
+            if (!file_exists(dirname($fullPath))) {
+                mkdir(dirname($fullPath), 0755, true);
+            }
+
+            // Save the WebP image
+            $image->save($fullPath);
+
+            // Get optimized file size
+            $optimizedSize = filesize($fullPath);
+
+            return [
+                $storagePath,
+                $optimizedSize,
+                $width,
+                $height,
+            ];
+        } catch (\Exception $e) {
+            // Fallback: store original file if optimization fails
+            $path = $file->store($directory, 'public');
+            return [$path, $file->getSize(), null, null];
+        }
+    }
+
+    /**
+     * Generate optimized thumbnail with WebP conversion
+     */
+    private function generateOptimizedThumbnail(string $path, ?int $width, ?int $height): ?string
+    {
+        try {
+            // Only generate thumbnail for reasonable image sizes
+            if (!$width || !$height || ($width < 50 && $height < 50)) {
+                return null;
+            }
+
+            $disk = Storage::disk('public');
+            $fullPath = $disk->path($path);
+
+            // Read image from storage path or from the actual file
+            if (file_exists($fullPath)) {
+                $manager = new ImageManager(new GdDriver());
+                $image = $manager->read($fullPath);
+
+                // Scale to thumbnail size
+                $image->scaleDown(
+                    width: self::THUMBNAIL_SIZE,
+                    height: self::THUMBNAIL_SIZE
+                );
+
+                // Convert to WebP with lower quality for thumbnails
+                $image->toWebp(self::WEBP_THUMBNAIL_QUALITY);
+
+                // Save thumbnail
+                $pathInfo = pathinfo($path);
+                $thumbnailPath = "{$pathInfo['dirname']}/{$pathInfo['filename']}_thumb.webp";
+                $thumbnailFullPath = $disk->path($thumbnailPath);
+
+                // Ensure directory exists
+                if (!file_exists(dirname($thumbnailFullPath))) {
+                    mkdir(dirname($thumbnailFullPath), 0755, true);
+                }
+
+                $image->save($thumbnailFullPath);
+
+                return $thumbnailPath;
+            }
+        } catch (\Exception $e) {
+            // Silently fail - thumbnail generation is optional
+        }
+
+        return null;
     }
 
     /**
@@ -217,44 +357,5 @@ class MediaController extends Controller
 
         return [null, null];
     }
-
-    /**
-     * Generate thumbnail for image
-     */
-    private function generateThumbnail(string $path, ?int $width, ?int $height): ?string
-    {
-        try {
-            // Only generate thumbnail for reasonable image sizes
-            if (!$width || !$height || ($width < 50 && $height < 50)) {
-                return null;
-            }
-
-            /** @var FilesystemAdapter $disk */
-            $disk = Storage::disk('public');
-            $fullPath = $disk->path($path);
-
-            // Use Intervention Image if available
-            if (class_exists('Intervention\Image\ImageManager')) {
-                // @noinspection PhpUndefinedClassInspection
-                $manager = new \Intervention\Image\ImageManager(new \Intervention\Image\Drivers\GdDriver());
-                $image = $manager->read($fullPath);
-
-                // Resize to thumbnail (max 300x300)
-                $image->scale(300, 300);
-
-                // Save thumbnail
-                $pathInfo = pathinfo($path);
-                $thumbnailPath = "{$pathInfo['dirname']}/{$pathInfo['filename']}_thumb.{$pathInfo['extension']}";
-                $thumbnailFullPath = $disk->path($thumbnailPath);
-
-                $image->save($thumbnailFullPath);
-
-                return $thumbnailPath;
-            }
-        } catch (\Exception $e) {
-            // Silently fail - thumbnail generation is optional
-        }
-
-        return null;
-    }
 }
+

@@ -13,9 +13,12 @@ return [
     | framework. This connection is utilized if another isn't explicitly
     | specified when running a cache operation inside the application.
     |
+    | PERFORMANCE OPTIMIZATION: Set to 'redis' for large-scale applications
+    | to reduce database load and improve response times through in-memory caching.
+    |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    'default' => env('CACHE_STORE', 'redis'),
 
     /*
     |--------------------------------------------------------------------------

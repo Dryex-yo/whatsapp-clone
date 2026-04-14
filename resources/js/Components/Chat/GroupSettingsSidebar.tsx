@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Users, Edit2, Trash2, Plus, Shield } from 'lucide-react';
-import { PrimaryButton } from '@/Components/PrimaryButton';
-import { DangerButton } from '@/Components/DangerButton';
+import PrimaryButton from '@/Components/PrimaryButton';
+import DangerButton from '@/Components/DangerButton';
 import type { Conversation, User } from '@/types/chat';
 
 export interface GroupSettingsSidebarProps {

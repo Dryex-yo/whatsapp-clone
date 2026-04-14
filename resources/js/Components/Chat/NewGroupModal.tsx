@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, Check } from 'lucide-react';
-import { Modal } from '@/Components/Modal';
-import { PrimaryButton } from '@/Components/PrimaryButton';
-import { TextInput } from '@/Components/TextInput';
+import Modal from '@/Components/Modal';
+import PrimaryButton from '@/Components/PrimaryButton';
+import TextInput from '@/Components/TextInput';
 import type { User } from '@/types/chat';
 
 export interface NewGroupModalProps {
@@ -125,7 +125,7 @@ export const NewGroupModal: React.FC<NewGroupModalProps> = ({
                             type="text"
                             placeholder="Enter group name..."
                             value={groupName}
-                            onChange={(e) => setGroupName(e.target.value)}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setGroupName(e.target.value)}
                             className="w-full"
                             disabled={isSubmitting || isLoading}
                         />
@@ -142,7 +142,7 @@ export const NewGroupModal: React.FC<NewGroupModalProps> = ({
                                 type="text"
                                 placeholder="Search contacts..."
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
                                 className="w-full pl-10"
                                 disabled={isSubmitting || isLoading}
                             />

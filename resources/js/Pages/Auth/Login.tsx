@@ -4,7 +4,7 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
 export default function Login({
@@ -25,6 +25,7 @@ export default function Login({
 
         post(route('login'), {
             onFinish: () => reset('password'),
+            onSuccess: () => router.visit('/chat'),
         });
     };
 

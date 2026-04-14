@@ -11,6 +11,8 @@ use App\Http\Resources\UserResource;
 use App\Events\MessageSent;
 use App\Events\ConversationOpened;
 use App\Events\UpdateUserPresence;
+use App\Services\OnlineStatusCacheService;
+use App\Services\UserListCacheService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -28,6 +30,9 @@ class ChatController extends Controller
 
     /**
      * Display a listing of all conversations for the authenticated user.
+     * 
+     * Uses Redis caching to optimize user list and online status queries,
+     * reducing PostgreSQL load for high-traffic applications.
      * 
      * @param Request $request
      * @return Response
@@ -52,6 +57,14 @@ class ChatController extends Controller
             ->orderBy('pivot_updated_at', 'desc')
             ->get();
 
+        // Enhance with cached online status
+        $userListService = app(UserListCacheService::class);
+        $conversations = $conversations->map(function ($conversation) use ($userListService) {
+            // Get conversation members with online status from cache
+            $conversation->users = $userListService->getConversationMembers($conversation, withStatus: true);
+            return $conversation;
+        });
+
         return Inertia::render('Chat/Index', [
             'currentUser' => new UserResource($user),
             'conversations' => ConversationResource::collection($conversations)->resolve(),
@@ -60,6 +73,8 @@ class ChatController extends Controller
 
     /**
      * Display a specific conversation with paginated messages.
+     * 
+     * Optimized with Redis caching for online status and user lists.
      * 
      * @param Request $request
      * @param Conversation $conversation
@@ -75,7 +90,7 @@ class ChatController extends Controller
         // Dispatch ConversationOpened event to mark received messages as delivered
         ConversationOpened::dispatch($conversation, $user);
 
-        // Fetch paginated messages (50 per page, arrange newest last)
+        // Fetch paginated messages (20 per page, arranged newest last)
         $messages = $conversation->messages()
             ->with(['user', 'attachments'])
             ->orderBy('created_at', 'desc')
@@ -83,11 +98,9 @@ class ChatController extends Controller
 
         // Reverse to show oldest first on frontend
         $messagesCollection = $messages->items();
-        array_walk($messagesCollection, function (&$item) {
-            // Items are already in the right order from collection
-        });
 
-        // Fetch all conversations for sidebar
+        // Fetch all conversations for sidebar with cached user lists
+        $userListService = app(UserListCacheService::class);
         $conversations = $user->conversations()
             ->with(['lastMessage.user', 'users'])
             ->withCount(['messages as unreadMessages' => function ($query) use ($user) {
@@ -98,10 +111,20 @@ class ChatController extends Controller
             ->orderBy('pivot_updated_at', 'desc')
             ->get();
 
+        // Enhance conversations with cached online status
+        $conversations = $conversations->map(function ($conv) use ($userListService) {
+            $conv->users = $userListService->getConversationMembers($conv, withStatus: true);
+            return $conv;
+        });
+
+        // Get active conversation members with online status from cache
+        $activeConversation = $conversation->load(['users']);
+        $activeConversation->users = $userListService->getConversationMembers($conversation, withStatus: true);
+
         return Inertia::render('Chat/Show', [
             'currentUser' => new UserResource($user),
             'conversations' => ConversationResource::collection($conversations)->resolve(),
-            'activeConversation' => new ConversationResource($conversation->load(['users'])),
+            'activeConversation' => new ConversationResource($activeConversation),
             'messages' => MessageResource::collection(array_reverse($messagesCollection))->resolve(),
             'pagination' => [
                 'current_page' => $messages->currentPage(),
@@ -209,6 +232,9 @@ class ChatController extends Controller
             'updated_at' => now(),
         ]);
 
+        // Invalidate message pagination cache for this conversation
+        cache()->tags(["conversation.{$conversation->id}.messages"])->flush();
+
         // Broadcast message to all conversation members in real-time via Reverb
         MessageSent::dispatch($message);
 
@@ -218,7 +244,9 @@ class ChatController extends Controller
     /**
      * Update user presence in a conversation.
      * 
-     * Broadcasts to presence channel to notify other users that this user is online
+     * Updates last_seen timestamp and caches online status in Redis
+     * to minimize database queries.
+     * Broadcasts to presence channel to notify other users.
      * 
      * @param Request $request
      * @param Conversation $conversation
@@ -231,8 +259,16 @@ class ChatController extends Controller
         // Authorize: User must be part of this conversation
         abort_unless($conversation->users->contains($user->id), 403);
 
-        // Update last_seen (middleware should handle this, but explicit update for presence)
+        // Update last_seen timestamp
         $user->update(['last_seen' => now()]);
+
+        // Update cached online status via Redis
+        $onlineStatusService = app(OnlineStatusCacheService::class);
+        $onlineStatusService->updateStatus($user);
+
+        // Invalidate user list caches for this conversation
+        $userListService = app(UserListCacheService::class);
+        $userListService->invalidateConversationCache($conversation);
 
         // Broadcast user joined event
         UpdateUserPresence::dispatch($user, $conversation->id, true);
@@ -383,6 +419,11 @@ class ChatController extends Controller
     /**
      * Get messages for infinite scroll (pagination backwards in time).
      * 
+     * Optimized for large-scale data with:
+     * - Reduced page size (20 messages per page)
+     * - Query caching to minimize PostgreSQL load
+     * - Efficient eager loading of relationships
+     * 
      * @param Request $request
      * @param Conversation $conversation
      * @return JsonResponse
@@ -395,27 +436,37 @@ class ChatController extends Controller
         abort_unless($conversation->users->contains($user->id), 403);
 
         $page = $request->query('page', 1);
-        $perPage = $request->query('per_page', 30);
+        $perPage = $request->query('per_page', 20); // Reduced from 30 to 20 for optimal load time
         $beforeId = $request->query('before_id', null);
 
-        $query = $conversation->messages()
-            ->with(['user', 'attachments']);
+        // Cache key for this query
+        $cacheKey = "conversation.{$conversation->id}.messages.page.{$page}.per.{$perPage}" . ($beforeId ? ".before.{$beforeId}" : '');
 
-        // If before_id provided, get messages before that ID (for infinite scroll)
-        if ($beforeId) {
-            $beforeMessage = Message::find($beforeId);
-            if ($beforeMessage) {
-                $query->where('created_at', '<', $beforeMessage->created_at)
-                    ->orWhere(function ($q) use ($beforeMessage) {
-                        $q->where('created_at', '=', $beforeMessage->created_at)
-                            ->where('id', '<', $beforeMessage->id);
-                    });
+        // Try to get from cache first (5 minute TTL)
+        $messages = cache()->tags(["conversation.{$conversation->id}.messages"])->remember(
+            $cacheKey,
+            \DateInterval::createFromDateString('5 minutes'),
+            function () use ($conversation, $page, $perPage, $beforeId) {
+                $query = $conversation->messages()
+                    ->with(['user', 'attachments']);
+
+                // If before_id provided, get messages before that ID (for infinite scroll)
+                if ($beforeId) {
+                    $beforeMessage = Message::find($beforeId);
+                    if ($beforeMessage) {
+                        $query->where('created_at', '<', $beforeMessage->created_at)
+                            ->orWhere(function ($q) use ($beforeMessage) {
+                                $q->where('created_at', '=', $beforeMessage->created_at)
+                                    ->where('id', '<', $beforeMessage->id);
+                            });
+                    }
+                }
+
+                return $query->orderBy('created_at', 'desc')
+                    ->orderBy('id', 'desc')
+                    ->paginate($perPage, ['*'], 'page', $page);
             }
-        }
-
-        $messages = $query->orderBy('created_at', 'desc')
-            ->orderBy('id', 'desc')
-            ->paginate($perPage, ['*'], 'page', $page);
+        );
 
         return response()->json([
             'messages' => MessageResource::collection(array_reverse($messages->items())),

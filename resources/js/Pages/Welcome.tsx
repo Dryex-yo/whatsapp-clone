@@ -1,4 +1,4 @@
-import { Link, Head } from '@inertiajs/react';
+import { Link, Head, useForm } from '@inertiajs/react';
 import { PageProps } from '@/types';
 import BlackHoleBackground from '@/Components/BlackHoleBackground';
 import VideoMaskedText from '@/Components/VideoMaskedText';
@@ -6,6 +6,11 @@ import GlitchText from '@/Components/GlitchText';
 import { motion } from 'framer-motion';
 
 export default function Welcome({ auth }: PageProps) {
+    const { post } = useForm();
+
+    const handleLogout = () => {
+        post(route('logout'));
+    };
     return (
         <>
             <Head title="WA Clone - Elegant Messaging" />
@@ -26,12 +31,20 @@ export default function Welcome({ auth }: PageProps) {
 
                     <div className="flex items-center gap-4">
                         {auth.user ? (
-                            <Link
-                                href={route('chat.index')}
-                                className="text-white bg-white/10 hover:bg-white/20 px-5 py-2 rounded-full backdrop-blur-md transition-all font-medium border border-white/10"
-                            >
-                                Buka Chat
-                            </Link>
+                            <>
+                                <Link
+                                    href={route('chat.index')}
+                                    className="text-white bg-white/10 hover:bg-white/20 px-5 py-2 rounded-full backdrop-blur-md transition-all font-medium border border-white/10"
+                                >
+                                    Buka Chat
+                                </Link>
+                                <button
+                                    onClick={handleLogout}
+                                    className="text-white bg-red-500/20 hover:bg-red-500/30 px-5 py-2 rounded-full backdrop-blur-md transition-all font-medium border border-red-500/30 hover:border-red-500/50"
+                                >
+                                    Logout
+                                </button>
+                            </>
                         ) : (
                             <>
                                 <Link href={route('login')} className="text-white/80 hover:text-white transition-colors font-medium">

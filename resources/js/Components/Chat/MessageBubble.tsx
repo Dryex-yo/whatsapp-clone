@@ -141,7 +141,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                         <div className="flex items-center gap-2">
                             <p className="text-sm break-words">{displayedBody}</p>
                             {decryptionError && (
-                                <AlertCircle className="w-4 h-4 text-orange-400" title={decryptionError} />
+                                <div className="relative group">
+                                    <AlertCircle className="w-4 h-4 text-orange-400" />
+                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-orange-500 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+                                        {decryptionError}
+                                    </div>
+                                </div>
                             )}
                             {(message as any).is_encrypted && !decryptionError && (
                                 <span className="text-xs opacity-60" title="End-to-End Encrypted">🔒</span>

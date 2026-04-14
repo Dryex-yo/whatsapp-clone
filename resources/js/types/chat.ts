@@ -22,6 +22,7 @@ export interface Conversation {
     is_group: boolean;
     avatar?: string; // Group avatar
     created_by?: number; // User ID of creator
+    admin_id?: number; // User ID of group admin
     description?: string; // Group description
     created_at?: string;
     updated_at?: string;

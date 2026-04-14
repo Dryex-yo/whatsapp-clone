@@ -6,7 +6,11 @@ use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use App\Models\Message;
+use App\Models\User;
+use App\Models\Conversation;
 use App\Policies\MessagePolicy;
+use App\Observers\UserObserver;
+use App\Observers\ConversationObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -36,6 +40,9 @@ class AppServiceProvider extends ServiceProvider
 
         // Register policy gates
         $this->registerPolicies();
+
+        // Register model observers for cache invalidation
+        $this->registerObservers();
     }
 
     /**
@@ -47,4 +54,19 @@ class AppServiceProvider extends ServiceProvider
             Gate::policy($model, $policy);
         }
     }
+
+    /**
+     * Register observers for automatic cache invalidation
+     * 
+     * Ensures caches are cleared when models are updated/deleted
+     */
+    private function registerObservers(): void
+    {
+        // Observe User model for cache invalidation
+        User::observe(UserObserver::class);
+
+        // Observe Conversation model for cache invalidation
+        Conversation::observe(ConversationObserver::class);
+    }
 }
+
