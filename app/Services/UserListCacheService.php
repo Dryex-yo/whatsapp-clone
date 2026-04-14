@@ -21,20 +21,21 @@ class UserListCacheService
     private const SEARCH_USERS_KEY = 'search:users:';
 
     /**
-     * Get conversation members with caching
+     * Get conversation members with caching and blocking privacy
      * 
      * @param Conversation $conversation
      * @param bool $withStatus Include online status
+     * @param User|null $currentUser To check blocking relationships
      * @return Collection
      */
-    public function getConversationMembers(Conversation $conversation, bool $withStatus = false): Collection
+    public function getConversationMembers(Conversation $conversation, bool $withStatus = false, ?User $currentUser = null): Collection
     {
         $cacheKey = static::CONVERSATION_USERS_KEY . $conversation->id . ($withStatus ? ':status' : '');
 
         return Cache::store('redis')->remember(
             $cacheKey,
             now()->addMinutes(self::CACHE_TTL_MINUTES),
-            function () use ($conversation, $withStatus) {
+            function () use ($conversation, $withStatus, $currentUser) {
                 $users = $conversation->users()
                     ->select('users.id', 'users.name', 'users.email', 'users.avatar', 'users.phone', 'users.last_seen')
                     ->get();
@@ -44,8 +45,16 @@ class UserListCacheService
                     $userIds = $users->pluck('id')->toArray();
                     $statuses = $onlineService->getMultipleStatuses($userIds);
 
-                    return $users->map(function ($user) use ($statuses) {
-                        $user->is_online = $statuses[$user->id] ?? false;
+                    return $users->map(function ($user) use ($statuses, $currentUser) {
+                        $isOnline = $statuses[$user->id] ?? false;
+                        
+                        // SECURITY: Hide online status from users who have been blocked
+                        // If this user (in list) has blocked the current user, hide their online status
+                        if ($currentUser && $user->hasBlocked($currentUser->id)) {
+                            $isOnline = false;
+                        }
+                        
+                        $user->is_online = $isOnline;
                         return $user;
                     });
                 }
@@ -102,14 +111,15 @@ class UserListCacheService
     }
 
     /**
-     * Get online users in a specific conversation
+     * Get online users in a specific conversation with blocking privacy
      * 
      * @param Conversation $conversation
+     * @param User|null $currentUser To check blocking relationships
      * @return Collection
      */
-    public function getOnlineMembers(Conversation $conversation): Collection
+    public function getOnlineMembers(Conversation $conversation, ?User $currentUser = null): Collection
     {
-        $members = $this->getConversationMembers($conversation, withStatus: true);
+        $members = $this->getConversationMembers($conversation, withStatus: true, currentUser: $currentUser);
         return $members->filter(fn($user) => $user->is_online);
     }
 

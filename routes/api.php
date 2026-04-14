@@ -102,6 +102,7 @@ Route::middleware('auth:sanctum')->group(function () {
      * Note: Uses implicit model binding for {conversation} parameter
      */
     Route::post('/conversations/{conversation}/messages', [ChatController::class, 'store'])
+        ->middleware('rate-limit-messages')
         ->name('messages.store');
 
     /**

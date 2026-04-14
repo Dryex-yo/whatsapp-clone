@@ -59,9 +59,10 @@ class ChatController extends Controller
 
         // Enhance with cached online status
         $userListService = app(UserListCacheService::class);
-        $conversations = $conversations->map(function ($conversation) use ($userListService) {
+        $conversations = $conversations->map(function ($conversation) use ($userListService, $user) {
             // Get conversation members with online status from cache
-            $conversation->users = $userListService->getConversationMembers($conversation, withStatus: true);
+            // Pass current user to check blocking relationships
+            $conversation->users = $userListService->getConversationMembers($conversation, withStatus: true, currentUser: $user);
             return $conversation;
         });
 
@@ -112,14 +113,14 @@ class ChatController extends Controller
             ->get();
 
         // Enhance conversations with cached online status
-        $conversations = $conversations->map(function ($conv) use ($userListService) {
-            $conv->users = $userListService->getConversationMembers($conv, withStatus: true);
+        $conversations = $conversations->map(function ($conv) use ($userListService, $user) {
+            $conv->users = $userListService->getConversationMembers($conv, withStatus: true, currentUser: $user);
             return $conv;
         });
 
         // Get active conversation members with online status from cache
         $activeConversation = $conversation->load(['users']);
-        $activeConversation->users = $userListService->getConversationMembers($conversation, withStatus: true);
+        $activeConversation->users = $userListService->getConversationMembers($conversation, withStatus: true, currentUser: $user);
 
         return Inertia::render('Chat/Show', [
             'currentUser' => new UserResource($user),

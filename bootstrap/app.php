@@ -19,7 +19,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
-        //
+        // Register custom middleware aliases
+        $middleware->alias([
+            'rate-limit-messages' => \App\Http\Middleware\RateLimitMessages::class,
+        ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
         // Delete ephemeral messages that have expired (every minute for precision)

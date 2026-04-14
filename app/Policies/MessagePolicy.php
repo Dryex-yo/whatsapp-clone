@@ -43,8 +43,8 @@ class MessagePolicy
             }
 
             $member = User::find($memberId);
-            if ($member && $member->isBlockedBy($user)) {
-                // User is blocked by this member
+            if ($member && $member->hasBlocked($user)) {
+                // User is blocked by this member - prevent message sending
                 return false;
             }
         }

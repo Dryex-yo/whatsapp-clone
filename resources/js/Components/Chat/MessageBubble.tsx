@@ -7,6 +7,7 @@ import { MessageStatus } from '@/Components/MessageStatus';
 import { StarButton } from '@/Components/Chat/StarButton';
 import { getUserColor } from '@/utils/colorUtils';
 import { decryptMessage, generateEncryptionKey } from '@/utils/encryption';
+import { sanitizeAsText } from '@/utils/sanitize';
 import type { Message, User, Conversation } from '@/types/chat';
 import type { Variants } from 'framer-motion';
 
@@ -43,7 +44,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 const senderEmail = message.user?.email || '';
                 const encryptionKey = generateEncryptionKey(message.user_id, senderEmail);
                 const decrypted = decryptMessage((message as any).encrypted_body, encryptionKey);
-                setDisplayedBody(decrypted);
+                // Sanitize decrypted content to prevent XSS attacks
+                const sanitized = sanitizeAsText(decrypted);
+                setDisplayedBody(sanitized);
                 setDecryptionError(null);
             } catch (error) {
                 console.error('Failed to decrypt message:', error);
@@ -51,7 +54,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 setDisplayedBody('[Encrypted Message]');
             }
         } else {
-            setDisplayedBody(message.body || '');
+            // Sanitize message body to prevent XSS attacks
+            // This removes any potentially dangerous HTML/JavaScript
+            const sanitized = sanitizeAsText(message.body || '');
+            setDisplayedBody(sanitized);
             setDecryptionError(null);
         }
     }, [message, message.user?.email]);
