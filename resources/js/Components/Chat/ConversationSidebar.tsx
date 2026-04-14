@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, MoreVertical, MessageSquare, Phone } from 'lucide-react';
+import { Search, MoreVertical, MessageSquare, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useGlobalSearch } from '@/hooks/useSearch';
 import { ThemeToggle } from '@/Components/ThemeToggle';
@@ -83,6 +83,7 @@ export interface ConversationSidebarProps {
     currentUser: User;
     onSelectConversation: (id: number) => void;
     onSearchChange: (query: string) => void;
+    onNewGroupClick?: () => void;
 }
 
 export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
@@ -91,6 +92,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
     currentUser,
     onSelectConversation,
     onSearchChange,
+    onNewGroupClick,
 }) => {
     const { 
         searchQuery, 
@@ -150,9 +152,12 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 <div className="flex gap-4 text-gray-400">
                     <motion.button
                         whileHover={{ scale: 1.1, color: '#00d084' }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={onNewGroupClick}
+                        title="Create new group"
                         className="transition"
                     >
-                        <MessageSquare className="w-5 h-5" />
+                        <Plus className="w-5 h-5" />
                     </motion.button>
                     <ThemeToggle />
                     <motion.button

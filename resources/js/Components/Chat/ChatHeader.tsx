@@ -27,6 +27,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 }) => {
     // Ensure users is an array before calling find
     const usersArray = Array.isArray(conversation.users) ? conversation.users : [];
+    
+    // For groups, use group name; for 1-on-1, use other user's name
+    const isGroup = conversation.is_group;
     const otherUser = usersArray.find((u: User) => u.id !== currentUser.id) || conversation.other_user;
     const displayName = conversation.name || otherUser?.name || 'Unknown';
     
@@ -39,8 +42,21 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     
     const isOnline = isUserOnline || isOnlineByLastSeen;
 
-    // Get typing status for other user
-    const isOtherUserTyping = otherUser && otherUser.id in typingUsers;
+    // Get typing users
+    const typingUsersList = Object.entries(typingUsers)
+        .filter(([userId]) => {
+            const id = parseInt(userId);
+            return id !== currentUser.id && isGroup ? true : id === otherUser?.id;
+        })
+        .map(([, name]) => name);
+    
+    const isOtherUserTyping = !isGroup && otherUser && otherUser.id in typingUsers;
+    const isAnyoneTyping = isGroup && typingUsersList.length > 0;
+
+    // Get group avatar or user avatar
+    const avatarUrl = isGroup 
+        ? conversation.avatar || `https://ui-avatars.com/api/?name=${displayName}`
+        : otherUser?.avatar || `https://ui-avatars.com/api/?name=${displayName}`;
 
     return (
         <motion.header
@@ -55,12 +71,12 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                     className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 relative"
                 >
                     <img
-                        src={otherUser?.avatar || `https://ui-avatars.com/api/?name=${displayName}`}
+                        src={avatarUrl}
                         alt={displayName}
                         className="w-full h-full object-cover"
                     />
-                    {/* Online indicator dot */}
-                    {isOnline && (
+                    {/* Online indicator dot (only for 1-on-1) */}
+                    {!isGroup && isOnline && (
                         <motion.div 
                             animate={{ scale: [1, 1.2, 1] }}
                             transition={{ duration: 2, repeat: Infinity }}
@@ -75,39 +91,70 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                     </h2>
                     <motion.p 
                         className="text-xs text-gray-400 h-4"
-                        key={isOtherUserTyping ? 'typing' : 'status'}
+                        key={isAnyoneTyping ? 'typing' : 'status'}
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                     >
-                        {isOtherUserTyping ? (
-                            <span className="flex items-center gap-1">
-                                <span className="flex gap-1">
-                                    <motion.span
-                                        animate={{ opacity: [0.4, 1, 0.4] }}
-                                        transition={{ duration: 1.4, repeat: Infinity }}
-                                        className="w-1.5 h-1.5 bg-[#31a24c] rounded-full"
-                                    />
-                                    <motion.span
-                                        animate={{ opacity: [0.4, 1, 0.4] }}
-                                        transition={{ duration: 1.4, repeat: Infinity, delay: 0.2 }}
-                                        className="w-1.5 h-1.5 bg-[#31a24c] rounded-full"
-                                    />
-                                    <motion.span
-                                        animate={{ opacity: [0.4, 1, 0.4] }}
-                                        transition={{ duration: 1.4, repeat: Infinity, delay: 0.4 }}
-                                        className="w-1.5 h-1.5 bg-[#31a24c] rounded-full"
-                                    />
-                                </span>
-                                typing...
-                            </span>
-                        ) : isOnline ? (
-                            <span className="flex items-center gap-1">
-                                <span className="w-2 h-2 bg-[#31a24c] rounded-full"></span>
-                                Online
-                            </span>
+                        {isGroup ? (
+                            <>
+                                {isAnyoneTyping ? (
+                                    <span className="flex items-center gap-1">
+                                        <span className="flex gap-1">
+                                            <motion.span
+                                                animate={{ opacity: [0.4, 1, 0.4] }}
+                                                transition={{ duration: 1.4, repeat: Infinity }}
+                                                className="w-1.5 h-1.5 bg-[#31a24c] rounded-full"
+                                            />
+                                            <motion.span
+                                                animate={{ opacity: [0.4, 1, 0.4] }}
+                                                transition={{ duration: 1.4, repeat: Infinity, delay: 0.2 }}
+                                                className="w-1.5 h-1.5 bg-[#31a24c] rounded-full"
+                                            />
+                                            <motion.span
+                                                animate={{ opacity: [0.4, 1, 0.4] }}
+                                                transition={{ duration: 1.4, repeat: Infinity, delay: 0.4 }}
+                                                className="w-1.5 h-1.5 bg-[#31a24c] rounded-full"
+                                            />
+                                        </span>
+                                        {typingUsersList.join(', ')} typing...
+                                    </span>
+                                ) : (
+                                    <span>{usersArray.length} members</span>
+                                )}
+                            </>
                         ) : (
-                            `Last seen ${otherUser?.last_seen ? new Date(otherUser.last_seen).toLocaleTimeString() : 'recently'}`
+                            <>
+                                {isOtherUserTyping ? (
+                                    <span className="flex items-center gap-1">
+                                        <span className="flex gap-1">
+                                            <motion.span
+                                                animate={{ opacity: [0.4, 1, 0.4] }}
+                                                transition={{ duration: 1.4, repeat: Infinity }}
+                                                className="w-1.5 h-1.5 bg-[#31a24c] rounded-full"
+                                            />
+                                            <motion.span
+                                                animate={{ opacity: [0.4, 1, 0.4] }}
+                                                transition={{ duration: 1.4, repeat: Infinity, delay: 0.2 }}
+                                                className="w-1.5 h-1.5 bg-[#31a24c] rounded-full"
+                                            />
+                                            <motion.span
+                                                animate={{ opacity: [0.4, 1, 0.4] }}
+                                                transition={{ duration: 1.4, repeat: Infinity, delay: 0.4 }}
+                                                className="w-1.5 h-1.5 bg-[#31a24c] rounded-full"
+                                            />
+                                        </span>
+                                        typing...
+                                    </span>
+                                ) : isOnline ? (
+                                    <span className="flex items-center gap-1">
+                                        <span className="w-2 h-2 bg-[#31a24c] rounded-full"></span>
+                                        Online
+                                    </span>
+                                ) : (
+                                    `Last seen ${otherUser?.last_seen ? new Date(otherUser.last_seen).toLocaleTimeString() : 'recently'}`
+                                )}
+                            </>
                         )}
                     </motion.p>
                 </div>

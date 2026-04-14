@@ -239,6 +239,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                 <MessageGroup
                                     messages={group.messages}
                                     currentUser={currentUser}
+                                    isGroup={conversation.is_group}
                                 />
                             </motion.div>
                         ))}

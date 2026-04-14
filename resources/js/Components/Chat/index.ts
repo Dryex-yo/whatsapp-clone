@@ -39,3 +39,9 @@ export {
     ChatWindowCompact 
 } from './ChatWindow';
 export type { ChatWindowProps } from './ChatWindow';
+
+export { NewGroupModal } from './NewGroupModal';
+export type { NewGroupModalProps } from './NewGroupModal';
+
+export { GroupSettingsSidebar } from './GroupSettingsSidebar';
+export type { GroupSettingsSidebarProps } from './GroupSettingsSidebar';

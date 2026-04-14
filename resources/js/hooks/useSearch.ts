@@ -34,7 +34,7 @@ export const useGlobalSearch = () => {
         messages: [],
     });
     const [isLoading, setIsLoading] = useState(false);
-    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Debounced search function
     const performSearch = useCallback(async (query: string) => {
@@ -108,7 +108,7 @@ export const useChatSearch = (conversationId?: number) => {
         total: 0,
     });
     const [isLoading, setIsLoading] = useState(false);
-    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const performSearch = useCallback(async (query: string) => {
         if (!conversationId || query.length < 1) {

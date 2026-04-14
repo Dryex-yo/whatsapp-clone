@@ -4,25 +4,30 @@ import { Check, CheckCheck, AlertCircle } from 'lucide-react';
 import { ImageMessage } from '@/Components/ImageMessage';
 import { AudioPlayer } from '@/Components/Chat/AudioPlayer';
 import { MessageStatus } from '@/Components/MessageStatus';
-import type { Message, User } from '@/types/chat';
+import { getUserColor } from '@/utils/colorUtils';
+import type { Message, User, Conversation } from '@/types/chat';
 import type { Variants } from 'framer-motion';
 
 export interface MessageBubbleProps {
     message: Message;
     currentUser: User;
     isConsecutive?: boolean;
+    isGroup?: boolean;
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ 
     message, 
     currentUser, 
-    isConsecutive 
+    isConsecutive,
+    isGroup = false
 }) => {
     const isSent = message.user_id === currentUser.id;
     const timestamp = message.created_at ? new Date(message.created_at).toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
     }) : '';
+
+    const senderColor = getUserColor(message.user_id);
 
     const containerVariants: Variants = {
         hidden: { opacity: 0, y: 10 },
@@ -68,75 +73,92 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             {/* Message Bubble */}
             <motion.div
                 variants={messageContent}
-                className={`max-w-xs px-3 py-2 rounded-lg ${
-                    isSent
-                        ? 'bg-[#005c4b] text-white rounded-bl-lg'
-                        : 'bg-[#202c33] text-gray-100 rounded-br-lg'
-                }`}
+                className="flex flex-col"
             >
-                {/* Attachments (new media system) */}
-                {message.attachments && message.attachments.length > 0 && (
-                    <div className="mb-2 space-y-2">
-                        {message.attachments.map((attachment) => (
-                            <ImageMessage
-                                key={attachment.id}
-                                attachment={attachment}
-                                isOwn={isSent}
-                                maxWidth={300}
-                            />
-                        ))}
-                    </div>
+                {/* Sender name (for group chats, shown for first message from user) */}
+                {!isSent && isGroup && !isConsecutive && (
+                    <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-xs font-semibold mb-1 px-3"
+                        style={{ color: senderColor }}
+                    >
+                        {message.user?.name}
+                    </motion.p>
                 )}
 
-                {/* Message Type: Text */}
-                {message.type === 'text' && (
-                    <p className="text-sm break-words">{message.body}</p>
-                )}
-
-                {/* Message Type: Image (legacy) */}
-                {message.type === 'image' && (
-                    <div className="rounded overflow-hidden max-w-xs">
-                        <img
-                            src={message.body || ''}
-                            alt="Message image"
-                            className="max-w-full max-h-48"
-                        />
-                    </div>
-                )}
-
-                {/* Message Type: File (legacy) */}
-                {message.type === 'file' && (
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded bg-white bg-opacity-20 flex items-center justify-center">
-                            <span className="text-xs font-bold">📎</span>
+                {/* Message content bubble */}
+                <motion.div
+                    className={`max-w-xs px-3 py-2 rounded-lg ${
+                        isSent
+                            ? 'bg-[#005c4b] text-white rounded-bl-lg'
+                            : 'bg-[#202c33] text-gray-100 rounded-br-lg'
+                    }`}
+                >
+                    {/* Attachments (new media system) */}
+                    {message.attachments && message.attachments.length > 0 && (
+                        <div className="mb-2 space-y-2">
+                            {message.attachments.map((attachment) => (
+                                <ImageMessage
+                                    key={attachment.id}
+                                    attachment={attachment}
+                                    isOwn={isSent}
+                                    maxWidth={300}
+                                />
+                            ))}
                         </div>
-                        <div className="text-sm">{message.body}</div>
-                    </div>
-                )}
+                    )}
 
-                {/* Message Type: Audio (legacy - voice messages) */}
-                {message.type === 'audio' && message.body && (
-                    <AudioPlayer
-                        src={message.body}
-                        fileName={message.body.split('/').pop() || 'Voice Message'}
-                        isOwn={isSent}
-                    />
-                )}
+                    {/* Message Type: Text */}
+                    {message.type === 'text' && (
+                        <p className="text-sm break-words">{message.body}</p>
+                    )}
 
-                {/* Timestamp & Message Status (for sent messages) */}
-                {isSent && (
-                    <div className="flex items-center justify-end gap-1 mt-1 text-xs opacity-70">
-                        <span>{timestamp}</span>
-                        <MessageStatus status={message.status || 'sent'} className="w-4 h-4" />
-                    </div>
-                )}
+                    {/* Message Type: Image (legacy) */}
+                    {message.type === 'image' && (
+                        <div className="rounded overflow-hidden max-w-xs">
+                            <img
+                                src={message.body || ''}
+                                alt="Message image"
+                                className="max-w-full max-h-48"
+                            />
+                        </div>
+                    )}
 
-                {/* Timestamp (for received messages) */}
-                {!isSent && (
-                    <div className="text-xs opacity-70 mt-1">
-                        {timestamp}
-                    </div>
-                )}
+                    {/* Message Type: File (legacy) */}
+                    {message.type === 'file' && (
+                        <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded bg-white bg-opacity-20 flex items-center justify-center">
+                                <span className="text-xs font-bold">📎</span>
+                            </div>
+                            <div className="text-sm">{message.body}</div>
+                        </div>
+                    )}
+
+                    {/* Message Type: Audio (legacy - voice messages) */}
+                    {message.type === 'audio' && message.body && (
+                        <AudioPlayer
+                            src={message.body}
+                            fileName={message.body.split('/').pop() || 'Voice Message'}
+                            isOwn={isSent}
+                        />
+                    )}
+
+                    {/* Timestamp & Message Status (for sent messages) */}
+                    {isSent && (
+                        <div className="flex items-center justify-end gap-1 mt-1 text-xs opacity-70">
+                            <span>{timestamp}</span>
+                            <MessageStatus status={message.status || 'sent'} className="w-4 h-4" />
+                        </div>
+                    )}
+
+                    {/* Timestamp (for received messages) */}
+                    {!isSent && (
+                        <div className="text-xs opacity-70 mt-1">
+                            {timestamp}
+                        </div>
+                    )}
+                </motion.div>
             </motion.div>
         </motion.div>
     );
@@ -145,12 +167,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
 export interface MessageGroupProps {
     messages: Message[];
     currentUser: User;
+    isGroup?: boolean;
 }
 
 /**
  * Groups consecutive messages from the same sender
  */
-export const MessageGroup: React.FC<MessageGroupProps> = ({ messages, currentUser }) => {
+export const MessageGroup: React.FC<MessageGroupProps> = ({ messages, currentUser, isGroup = false }) => {
     return (
         <motion.div
             layout
@@ -170,6 +193,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({ messages, currentUse
                         message={message}
                         currentUser={currentUser}
                         isConsecutive={isConsecutive}
+                        isGroup={isGroup}
                     />
                 );
             })}

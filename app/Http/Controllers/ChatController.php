@@ -404,5 +404,157 @@ class ChatController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Create a new group conversation.
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function createGroup(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        // Validate input
+        $validated = $request->validate([
+            'name' => 'required|string|min:1|max:255',
+            'user_ids' => 'required|array|min:2',
+            'user_ids.*' => 'integer|exists:users,id|distinct',
+            'description' => 'nullable|string|max:500',
+            'avatar' => 'nullable|image|max:2048',
+        ]);
+
+        // Ensure current user is not trying to add themselves
+        if (in_array($user->id, $validated['user_ids'])) {
+            return response()->json([
+                'message' => 'You cannot add yourself as a group member',
+            ], 422);
+        }
+
+        // Check that at least 2 members (including current user)
+        if (count($validated['user_ids']) < 2) {
+            return response()->json([
+                'message' => 'Group must have at least 2 other members',
+            ], 422);
+        }
+
+        try {
+            // Create the conversation
+            $conversation = Conversation::create([
+                'name' => $validated['name'],
+                'is_group' => true,
+                'created_by' => $user->id,
+                'admin_id' => $user->id, // Creator is admin
+                'description' => $validated['description'] ?? null,
+            ]);
+
+            // Handle avatar upload if provided
+            if ($request->hasFile('avatar')) {
+                $avatarPath = $request->file('avatar')->store('group-avatars', 'public');
+                $conversation->update(['avatar' => $avatarPath]);
+            }
+
+            // Add current user as admin
+            $conversation->users()->attach($user->id, [
+                'role' => 'admin',
+                'joined_at' => now(),
+            ]);
+
+            // Add selected users as members
+            foreach ($validated['user_ids'] as $userId) {
+                $conversation->users()->attach($userId, [
+                    'role' => 'member',
+                    'joined_at' => now(),
+                ]);
+            }
+
+            // Load relationships for response
+            $conversation->load(['users', 'lastMessage.user']);
+
+            return response()->json(new ConversationResource($conversation), 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to create group: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove a member from a group conversation.
+     * Only group admin can remove members.
+     * 
+     * @param Request $request
+     * @param Conversation $conversation
+     * @param int $member User ID to remove
+     * @return JsonResponse
+     */
+    public function removeMember(Request $request, Conversation $conversation, int $member): JsonResponse
+    {
+        $user = $request->user();
+
+        // Authorize: User must be admin of this group
+        abort_unless($conversation->is_group && $conversation->admin_id === $user->id, 403);
+
+        // Cannot remove admin
+        if ($conversation->admin_id === $member) {
+            return response()->json([
+                'message' => 'Cannot remove the group admin',
+            ], 422);
+        }
+
+        // Remove the user
+        $conversation->users()->detach($member);
+
+        return response()->json([
+            'message' => 'Member removed successfully',
+        ]);
+    }
+
+    /**
+     * Add members to a group conversation.
+     * Only group admin can add members.
+     * 
+     * @param Request $request
+     * @param Conversation $conversation
+     * @return JsonResponse
+     */
+    public function addMembers(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = $request->user();
+
+        // Authorize: User must be admin of this group
+        abort_unless($conversation->is_group && $conversation->admin_id === $user->id, 403);
+
+        // Validate input
+        $validated = $request->validate([
+            'user_ids' => 'required|array|min:1',
+            'user_ids.*' => 'integer|exists:users,id|distinct',
+        ]);
+
+        // Get users that are already in the conversation
+        $existingUserIds = $conversation->users()->pluck('user_id')->toArray();
+
+        // Filter out users already in the group
+        $newUserIds = array_diff($validated['user_ids'], $existingUserIds);
+
+        if (empty($newUserIds)) {
+            return response()->json([
+                'message' => 'All users are already members of this group',
+            ], 422);
+        }
+
+        // Add new members
+        foreach ($newUserIds as $userId) {
+            $conversation->users()->attach($userId, [
+                'role' => 'member',
+                'joined_at' => now(),
+            ]);
+        }
+
+        // Load and return updated conversation
+        $conversation->load(['users']);
+
+        return response()->json(new ConversationResource($conversation), 200);
+    }
 }
 

@@ -17,6 +17,7 @@ use Carbon\Carbon;
  * @property bool $is_group
  * @property string|null $avatar Group avatar
  * @property int|null $created_by User ID who created the group
+ * @property int|null $admin_id User ID of the group admin
  * @property string|null $description Group description
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -34,6 +35,7 @@ class Conversation extends Model
         'is_group',
         'avatar',
         'created_by',
+        'admin_id',
         'description',
     ];
 
@@ -85,6 +87,15 @@ class Conversation extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the admin (group administrator) of this conversation.
+     * Returns null for 1-on-1 conversations.
+     */
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'admin_id');
     }
 
     /**

@@ -3,6 +3,8 @@ import { usePage, router } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { ConversationSidebar } from '@/Components/Chat/ConversationSidebar';
 import { ChatWindow } from '@/Components/Chat/ChatWindow';
+import { NewGroupModal } from '@/Components/Chat/NewGroupModal';
+import { GroupSettingsSidebar } from '@/Components/Chat/GroupSettingsSidebar';
 import { usePresence } from '@/hooks/usePresence';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useWebNotifications } from '@/hooks/useWebNotifications';
@@ -45,6 +47,9 @@ export default function ChatShowPage() {
     const [hasMoreMessages, setHasMoreMessages] = useState(
         props.pagination ? currentPage < props.pagination.last_page : false
     );
+    const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
+    const [isGroupSettingsOpen, setIsGroupSettingsOpen] = useState(false);
+    const [isCreatingGroup, setIsCreatingGroup] = useState(false);
 
     // Setup presence tracking for online users
     const { onlineUsers } = usePresence(activeConversation?.id, currentUser);
@@ -204,6 +209,71 @@ export default function ChatShowPage() {
         }
     }, [currentPage, hasMoreMessages, isLoading, activeConversation.id]);
 
+    const handleCreateGroup = useCallback(
+        async (groupName: string, userIds: number[]) => {
+            setIsCreatingGroup(true);
+            try {
+                const response = await fetch('/api/groups', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({
+                        name: groupName,
+                        user_ids: userIds,
+                    }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to create group');
+                }
+
+                const newConversation = await response.json();
+                
+                // Navigate to the new group conversation
+                router.get(`/chat/${newConversation.id}`);
+            } catch (error) {
+                console.error('Error creating group:', error);
+                alert(error instanceof Error ? error.message : 'Failed to create group');
+                throw error;
+            } finally {
+                setIsCreatingGroup(false);
+            }
+        },
+        []
+    );
+
+    const handleRemoveMember = useCallback(
+        async (userId: number) => {
+            if (!activeConversation?.id) return;
+
+            try {
+                const response = await fetch(
+                    `/api/conversations/${activeConversation.id}/members/${userId}`,
+                    {
+                        method: 'DELETE',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    }
+                );
+
+                if (!response.ok) {
+                    throw new Error('Failed to remove member');
+                }
+
+                alert('Member removed successfully');
+            } catch (error) {
+                console.error('Error removing member:', error);
+                alert('Failed to remove member');
+                throw error;
+            }
+        },
+        [activeConversation?.id]
+    );
+
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -218,6 +288,7 @@ export default function ChatShowPage() {
                     currentUser={currentUser}
                     onSelectConversation={handleSelectConversation}
                     onSearchChange={() => {}} // Search is now handled by useGlobalSearch hook in sidebar
+                    onNewGroupClick={() => setIsNewGroupModalOpen(true)}
                 />
             </div>
 
@@ -255,6 +326,31 @@ export default function ChatShowPage() {
                     ← Back
                 </motion.button>
             </div>
+
+            {/* New Group Modal */}
+            <NewGroupModal
+                isOpen={isNewGroupModalOpen}
+                onClose={() => setIsNewGroupModalOpen(false)}
+                onCreateGroup={handleCreateGroup}
+                availableUsers={conversationsArray
+                    .flatMap(c => Array.isArray(c.users) ? c.users : [])
+                    .filter((user, idx, arr) => arr.findIndex(u => u.id === user.id) === idx)
+                    .filter(u => u.id !== currentUser.id)}
+                currentUser={currentUser}
+                isLoading={isCreatingGroup}
+            />
+
+            {/* Group Settings Sidebar */}
+            {activeConversation?.is_group && (
+                <GroupSettingsSidebar
+                    isOpen={isGroupSettingsOpen}
+                    onClose={() => setIsGroupSettingsOpen(false)}
+                    conversation={activeConversation}
+                    currentUser={currentUser}
+                    onRemoveMember={handleRemoveMember}
+                    onAddMembers={() => setIsNewGroupModalOpen(true)}
+                />
+            )}
         </motion.div>
     );
 }

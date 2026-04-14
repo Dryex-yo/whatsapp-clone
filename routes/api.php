@@ -49,6 +49,18 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('messages.store');
 
     /**
+     * Group Management Routes
+     */
+    Route::post('/groups', [ChatController::class, 'createGroup'])
+        ->name('groups.create');
+
+    Route::delete('/conversations/{conversation}/members/{member}', [ChatController::class, 'removeMember'])
+        ->name('conversations.removeMember');
+
+    Route::post('/conversations/{conversation}/members', [ChatController::class, 'addMembers'])
+        ->name('conversations.addMembers');
+
+    /**
      * Presence Routes
      * Updates user presence in conversation for real-time online status
      */

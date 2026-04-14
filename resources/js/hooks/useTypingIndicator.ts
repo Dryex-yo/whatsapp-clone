@@ -12,7 +12,7 @@ export function useTypingIndicator(
     debounceMs: number = 3000
 ) {
     const [typingUsers, setTypingUsers] = useState<Record<number, string>>({});
-    const typingTimeouts = useRef<Record<number, NodeJS.Timeout>>({});
+    const typingTimeouts = useRef<Record<number, ReturnType<typeof setTimeout>>>({});
     const lastTypingBroadcast = useRef<number>(0);
     const isTyping = useRef<boolean>(false);
 
@@ -159,7 +159,7 @@ export function useTypingState(
         debounceMs
     );
 
-    const typingTimeoutRef = useRef<NodeJS.Timeout>();
+    const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>();
 
     const handleInputChange = useCallback(
         (text: string) => {
