@@ -53,10 +53,30 @@ class MessageResource extends JsonResource
             // Computed properties
             'is_read' => $this->read_at !== null,
             'is_edited' => $this->edited_at !== null,
+            'is_starred' => $this->getIsStarred($request),
             'formatted_file_size' => $formattedFileSize,
             // Relationships (only include sender for message details)
             'sender' => new UserResource($this->whenLoaded('user')),
             'attachments' => MessageAttachmentResource::collection($this->whenLoaded('attachments')),
         ];
+    }
+
+    /**
+     * Determine if the message is starred by the current user.
+     *
+     * @param Request $request
+     * @return bool
+     */
+    private function getIsStarred(Request $request): bool
+    {
+        $user = $request->user();
+        
+        if (!$user) {
+            return false;
+        }
+
+        return $this->starredBy()
+            ->where('user_id', $user->id)
+            ->exists();
     }
 }

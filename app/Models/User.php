@@ -91,6 +91,20 @@ class User extends Authenticatable
     }
 
     /**
+     * Get all messages starred by this user.
+     */
+    public function starredMessages(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Message::class,
+            'starred_messages',
+            'user_id',
+            'message_id'
+        )->withTimestamps()
+         ->orderBy('starred_messages.created_at', 'desc');
+    }
+
+    /**
      * Get all conversations created by this user.
      */
     public function createdConversations(): HasMany

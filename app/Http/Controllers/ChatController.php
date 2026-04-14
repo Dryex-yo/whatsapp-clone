@@ -556,5 +556,106 @@ class ChatController extends Controller
 
         return response()->json(new ConversationResource($conversation), 200);
     }
+
+    /**
+     * Toggle star status on a message.
+     * If message is not starred, star it. If already starred, unstar it.
+     * 
+     * @param Request $request
+     * @param Message $message
+     * @return JsonResponse
+     */
+    public function toggleStar(Request $request, Message $message): JsonResponse
+    {
+        $user = $request->user();
+
+        // Authorize: User must have access to this message (part of conversation)
+        abort_unless($message->conversation->users->contains($user->id), 403);
+
+        // Check if already starred
+        $isStarred = $message->starredBy()->where('user_id', $user->id)->exists();
+
+        if ($isStarred) {
+            // Unstar the message
+            $message->starredBy()->detach($user->id);
+            $starred = false;
+        } else {
+            // Star the message
+            $message->starredBy()->attach($user->id);
+            $starred = true;
+        }
+
+        return response()->json([
+            'message' => $starred ? 'Message starred' : 'Message unstarred',
+            'is_starred' => $starred,
+        ]);
+    }
+
+    /**
+     * Get all starred messages for the authenticated user.
+     * Returns starred messages grouped by conversation with conversation details.
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getStarredMessages(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $perPage = $request->query('per_page', 50);
+
+        // Get starred messages with related data, paginated
+        $starredMessages = $user->starredMessages()
+            ->with(['user', 'conversation.users', 'attachments'])
+            ->paginate($perPage);
+
+        // Group by conversation for easier display
+        $starredByConversation = collect($starredMessages->items())
+            ->groupBy('conversation_id')
+            ->map(function ($messages) {
+                return [
+                    'conversation' => $messages->first()->conversation,
+                    'messages' => $messages->values(),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'data' => MessageResource::collection($starredMessages->items())->resolve(),
+            'grouped_by_conversation' => $starredByConversation,
+            'pagination' => [
+                'current_page' => $starredMessages->currentPage(),
+                'last_page' => $starredMessages->lastPage(),
+                'total' => $starredMessages->total(),
+                'per_page' => $starredMessages->perPage(),
+            ],
+        ]);
+    }
+
+    /**
+     * Get starred messages for a specific conversation.
+     * 
+     * @param Request $request
+     * @param Conversation $conversation
+     * @return JsonResponse
+     */
+    public function getStarredMessagesInConversation(Request $request, Conversation $conversation): JsonResponse
+    {
+        $user = $request->user();
+
+        // Authorize: User must be part of this conversation
+        abort_unless($conversation->users->contains($user->id), 403);
+
+        // Get starred messages in this conversation
+        $starredMessages = $user->starredMessages()
+            ->where('conversation_id', $conversation->id)
+            ->with(['user', 'attachments'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'messages' => MessageResource::collection($starredMessages),
+            'total' => $starredMessages->count(),
+        ]);
+    }
 }
 

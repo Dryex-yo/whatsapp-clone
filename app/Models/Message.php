@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Carbon\Carbon;
@@ -97,6 +98,27 @@ class Message extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(MessageAttachment::class);
+    }
+
+    /**
+     * Get the users who have starred this message.
+     */
+    public function starredBy(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            User::class,
+            'starred_messages',
+            'message_id',
+            'user_id'
+        )->withTimestamps();
+    }
+
+    /**
+     * Check if message is starred by the given user.
+     */
+    public function isStarredBy(User $user): bool
+    {
+        return $this->starredBy()->where('user_id', $user->id)->exists();
     }
 
     /**

@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, CheckCheck, AlertCircle } from 'lucide-react';
 import { ImageMessage } from '@/Components/ImageMessage';
 import { AudioPlayer } from '@/Components/Chat/AudioPlayer';
 import { MessageStatus } from '@/Components/MessageStatus';
+import { StarButton } from '@/Components/Chat/StarButton';
 import { getUserColor } from '@/utils/colorUtils';
 import type { Message, User, Conversation } from '@/types/chat';
 import type { Variants } from 'framer-motion';
@@ -21,6 +22,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     isConsecutive,
     isGroup = false
 }) => {
+    const [isStarred, setIsStarred] = useState(message.is_starred || false);
     const isSent = message.user_id === currentUser.id;
     const timestamp = message.created_at ? new Date(message.created_at).toLocaleTimeString('en-US', {
         hour: '2-digit',
@@ -159,6 +161,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                         </div>
                     )}
                 </motion.div>
+
+                {/* Message Actions - Star button */}
+                <div className="flex items-center gap-1 mt-1 px-1">
+                    <StarButton
+                        messageId={message.id}
+                        isStarred={isStarred}
+                        onStarToggle={setIsStarred}
+                        size={16}
+                    />
+                </div>
             </motion.div>
         </motion.div>
     );

@@ -38,6 +38,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/conversations/{conversation}/search', [ChatController::class, 'searchChat'])
         ->name('search.chat');
 
+    /**
+     * Starred Messages Routes
+     * Save and retrieve important messages
+     */
+    Route::get('/messages/starred', [ChatController::class, 'getStarredMessages'])
+        ->name('messages.starred');
+
+    Route::post('/messages/{message}/star', [ChatController::class, 'toggleStar'])
+        ->name('messages.toggleStar');
+
+    Route::get('/conversations/{conversation}/messages/starred', [ChatController::class, 'getStarredMessagesInConversation'])
+        ->name('messages.starred.conversation');
+
     Route::get('/conversations/{conversation}/messages', [ChatController::class, 'getMessages'])
         ->name('messages.get');
 

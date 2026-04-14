@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Search, MoreVertical, MessageSquare, Plus } from 'lucide-react';
+import { Search, MoreVertical, MessageSquare, Plus, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useGlobalSearch } from '@/hooks/useSearch';
 import { ThemeToggle } from '@/Components/ThemeToggle';
+import { StarredMessagesModal } from '@/Components/Chat/StarredMessagesModal';
 import type { Conversation, User } from '@/types/chat';
 
 export interface ConversationItemProps {
@@ -94,6 +95,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
     onSearchChange,
     onNewGroupClick,
 }) => {
+    const [showStarredMessages, setShowStarredMessages] = useState(false);
     const { 
         searchQuery, 
         handleSearch, 
@@ -158,6 +160,15 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                         className="transition"
                     >
                         <Plus className="w-5 h-5" />
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.1, color: '#fbbf24' }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setShowStarredMessages(true)}
+                        title="View starred messages"
+                        className="transition"
+                    >
+                        <Star className="w-5 h-5" />
                     </motion.button>
                     <ThemeToggle />
                     <motion.button
@@ -266,6 +277,12 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                     </motion.div>
                 )}
             </motion.div>
+
+            {/* Starred Messages Modal */}
+            <StarredMessagesModal
+                isOpen={showStarredMessages}
+                onClose={() => setShowStarredMessages(false)}
+            />
         </motion.aside>
     );
 };

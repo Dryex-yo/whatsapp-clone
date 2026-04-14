@@ -89,6 +89,7 @@ export interface Message {
     // Computed properties
     is_read?: boolean;
     is_edited?: boolean;
+    is_starred?: boolean; // Whether this message is starred by the current user
     formatted_file_size?: string; // Human readable (e.g., "2.5 MB")
     formatted_time?: string; // e.g., "14:30", "Yesterday", "Monday"
 }
