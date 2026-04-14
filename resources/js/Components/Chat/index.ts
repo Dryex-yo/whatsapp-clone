@@ -51,3 +51,5 @@ export type { StarButtonProps } from './StarButton';
 
 export { StarredMessagesModal } from './StarredMessagesModal';
 export type { StarredMessagesModalProps } from './StarredMessagesModal';
+
+export { default as WelcomeScreen } from './WelcomeScreen';

@@ -30,6 +30,32 @@ Route::middleware('auth:sanctum')->group(function () {
     })->name('user.theme.update');
 
     /**
+     * User Settings Routes
+     */
+    Route::get('/user/settings', function (Request $request) {
+        return response()->json([
+            'bio' => $request->user()->bio,
+            'last_seen_privacy' => $request->user()->last_seen_privacy,
+            'avatar' => $request->user()->avatar,
+        ]);
+    })->name('user.settings.get');
+
+    Route::put('/user/settings', function (Request $request) {
+        $validated = $request->validate([
+            'bio' => 'nullable|string|max:500',
+            'last_seen_privacy' => 'required|in:everyone,contacts,nobody',
+        ]);
+
+        $request->user()->update($validated);
+
+        return response()->json([
+            'message' => 'Settings updated successfully',
+            'bio' => $request->user()->bio,
+            'last_seen_privacy' => $request->user()->last_seen_privacy,
+        ]);
+    })->name('user.settings.update');
+
+    /**
      * Block Management Routes
      * Block, unblock, and manage blocked users
      */

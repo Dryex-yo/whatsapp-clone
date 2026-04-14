@@ -7,7 +7,9 @@ export interface User {
     email: string;
     phone?: string;
     avatar?: string;
+    bio?: string;
     last_seen?: string; // ISO 8601 timestamp
+    last_seen_privacy?: 'everyone' | 'contacts' | 'nobody';
     created_at?: string;
     updated_at?: string;
 }

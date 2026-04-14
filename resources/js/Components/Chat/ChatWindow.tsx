@@ -5,6 +5,7 @@ import { ChatHeader, ChatHeaderOnly } from './ChatHeader';
 import { MessageBubble, MessageGroup, DateSeparator, TypingIndicator } from './MessageBubble';
 import { MessageInput } from './MessageInput';
 import { SearchInChat, useSearchInChat } from '@/Components/SearchInChat';
+import WelcomeScreen from './WelcomeScreen';
 import { useInfiniteScroll, useScrollPosition } from '@/hooks/useInfiniteScroll';
 import type { Conversation, Message, User } from '@/types/chat';
 
@@ -109,26 +110,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }, []);
 
     if (!conversation) {
-        return (
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex-1 flex flex-col items-center justify-center bg-[#111b21] bg-opacity-50"
-            >
-                <motion.div
-                    animate={{ y: [0, -10, 0] }}
-                    transition={{ repeat: Infinity, duration: 3 }}
-                >
-                    <MessageSquare className="w-24 h-24 text-[#005c4b] opacity-30 mb-4" />
-                </motion.div>
-                <h2 className="text-xl font-500 text-gray-400 mb-2">
-                    Select a conversation
-                </h2>
-                <p className="text-sm text-gray-500">
-                    Choose one to start or continue chatting
-                </p>
-            </motion.div>
-        );
+        return <WelcomeScreen />;
     }
 
     return (

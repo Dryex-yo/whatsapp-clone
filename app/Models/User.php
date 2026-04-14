@@ -17,10 +17,12 @@ use Carbon\Carbon;
  * 
  * @property int $id
  * @property string $name
+ * @property string|null $bio
  * @property string $email
  * @property string|null $avatar
  * @property string|null $phone
  * @property Carbon|null $last_seen
+ * @property string $last_seen_privacy
  * @property Carbon|null $email_verified_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -37,11 +39,13 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'bio',
         'email',
         'password',
         'avatar',
         'phone',
         'last_seen',
+        'last_seen_privacy',
         'theme',
     ];
 
@@ -66,6 +70,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'last_seen' => 'datetime',
             'password' => 'hashed',
+            'last_seen_privacy' => 'string',
         ];
     }
 
@@ -197,5 +202,50 @@ class User extends Authenticatable
     {
         $userId = $user instanceof User ? $user->id : $user;
         $this->blockedUsers()->detach($userId);
+    }
+
+    /**
+     * Check if this user's last seen time should be visible to another user.
+     */
+    public function canSeeLastSeen(User|int $user): bool
+    {
+        if ($this->last_seen_privacy === 'nobody') {
+            return false;
+        }
+
+        if ($this->last_seen_privacy === 'everyone') {
+            return true;
+        }
+
+        // 'contacts' - only show to contacts
+        if ($this->last_seen_privacy === 'contacts') {
+            $userId = $user instanceof User ? $user->id : $user;
+            // Check if users are in a mutual conversation (are contacts)
+            return $this->conversations()
+                ->whereHas('users', fn($q) => $q->where('users.id', $userId))
+                ->exists();
+        }
+
+        return false;
+    }
+
+    /**
+     * Get formatted last seen time visible to a user based on privacy settings.
+     */
+    public function getVisibleLastSeen(User|int $user): string|null
+    {
+        if (!$this->canSeeLastSeen($user)) {
+            return null;
+        }
+
+        if (!$this->last_seen) {
+            return null;
+        }
+
+        if ($this->isOnline()) {
+            return 'online';
+        }
+
+        return $this->last_seen->diffForHumans();
     }
 }
