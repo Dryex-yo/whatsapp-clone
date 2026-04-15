@@ -1,4 +1,5 @@
 import axios from 'axios';
+import './utils/echo';
 
 window.axios = axios;
 

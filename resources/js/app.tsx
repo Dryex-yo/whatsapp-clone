@@ -5,6 +5,9 @@ import { createInertiaApp } from '@inertiajs/react';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createRoot } from 'react-dom/client';
 import { ThemeProvider, Theme } from './contexts/ThemeProvider';
+import { NetworkProvider } from './contexts/NetworkContext';
+import ErrorBoundary from './Components/ErrorBoundary';
+import NetworkBanner from './Components/NetworkBanner';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
@@ -22,9 +25,14 @@ createInertiaApp({
         const userTheme = (props.initialPage.props?.auth?.user?.theme as Theme) || 'system';
 
         root.render(
-            <ThemeProvider initialTheme={userTheme}>
-                <App {...props} />
-            </ThemeProvider>
+            <ErrorBoundary>
+                <NetworkProvider>
+                    <ThemeProvider initialTheme={userTheme}>
+                        <NetworkBanner />
+                        <App {...props} />
+                    </ThemeProvider>
+                </NetworkProvider>
+            </ErrorBoundary>
         );
     },
     progress: {
