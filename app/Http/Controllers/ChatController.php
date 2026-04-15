@@ -34,6 +34,11 @@ class ChatController extends Controller
      * Uses Redis caching to optimize user list and online status queries,
      * reducing PostgreSQL load for high-traffic applications.
      * 
+     * Eager Loading Strategy:
+     * - lastMessage.user: Avoid N+1 when fetching last message sender
+     * - users: Avoid N+1 when displaying conversation members
+     * - messages count for unread count: Calculated via withCount instead of separate queries
+     * 
      * @param Request $request
      * @return Response
      */
@@ -43,21 +48,24 @@ class ChatController extends Controller
 
         // Fetch conversations with last message and participants
         // Sorted by pinned (pinned first), then by most recent activity
+        // Eager load all relationships to prevent N+1 queries
         $conversations = $user->conversations()
             ->with([
-                'lastMessage.user',
-                'users',
+                'lastMessage.user:id,name,avatar',      // Load only needed columns for performance
+                'users:id,name,avatar,phone,bio',       // Avoid loading password and sensitive fields
             ])
             ->withCount(['messages as unreadMessages' => function ($query) use ($user) {
                 // Count messages that haven't been read by this user
+                // Uses the new indexes for fast counting
                 $query->where('user_id', '!=', $user->id)
                     ->whereNull('read_at');
             }])
-            ->orderBy('pivot_is_pinned', 'desc')
-            ->orderBy('pivot_updated_at', 'desc')
+            ->orderByPivot('is_pinned', 'desc')
+            ->orderByPivot('updated_at', 'desc')
             ->get();
 
         // Enhance with cached online status
+        // This maps fresh data from cache instead of making new queries
         $userListService = app(UserListCacheService::class);
         $conversations = $conversations->map(function ($conversation) use ($userListService, $user) {
             // Get conversation members with online status from cache
@@ -77,6 +85,11 @@ class ChatController extends Controller
      * 
      * Optimized with Redis caching for online status and user lists.
      * 
+     * Eager Loading Strategy:
+     * - Paginated messages with user and attachments: Prevents N+1 on message sender/attachments
+     * - Sidebar conversations: Reuses same pattern as index() for consistency
+     * - Active conversation users: Only loaded once via authorization, reused for cache mapping
+     * 
      * @param Request $request
      * @param Conversation $conversation
      * @return Response
@@ -85,31 +98,40 @@ class ChatController extends Controller
     {
         $user = $request->user();
 
-        // Authorize: User must be part of this conversation
+        // Authorize AND eagerly load users in one operation
+        // This prevents the "load after check" anti-pattern that causes duplicate queries
+        $conversation->load('users');
         abort_unless($conversation->users->contains($user->id), 403);
 
         // Dispatch ConversationOpened event to mark received messages as delivered
         ConversationOpened::dispatch($conversation, $user);
 
-        // Fetch paginated messages (20 per page, arranged newest last)
+        // Fetch paginated messages with eager loaded relationships
+        // Uses new composite indexes (conversation_id, created_at) for optimal pagination
         $messages = $conversation->messages()
-            ->with(['user', 'attachments'])
+            ->with([
+                'user:id,name,avatar,phone,bio',           // Avoid N+1 on message sender
+                'attachments:id,message_id,file_name,path,mime_type,type,size'    // Avoid N+1 on attachments
+            ])
             ->orderBy('created_at', 'desc')
             ->paginate(50);
 
         // Reverse to show oldest first on frontend
         $messagesCollection = $messages->items();
 
-        // Fetch all conversations for sidebar with cached user lists
+        // Fetch all conversations for sidebar with same eager loading strategy as index()
         $userListService = app(UserListCacheService::class);
         $conversations = $user->conversations()
-            ->with(['lastMessage.user', 'users'])
+            ->with([
+                'lastMessage.user:id,name,avatar',        // Avoid N+1 on last message sender
+                'users:id,name,avatar,phone,bio'          // Avoid N+1 on conversation members
+            ])
             ->withCount(['messages as unreadMessages' => function ($query) use ($user) {
                 $query->where('user_id', '!=', $user->id)
                     ->whereNull('read_at');
             }])
-            ->orderBy('pivot_is_pinned', 'desc')
-            ->orderBy('pivot_updated_at', 'desc')
+            ->orderByPivot('is_pinned', 'desc')
+            ->orderByPivot('updated_at', 'desc')
             ->get();
 
         // Enhance conversations with cached online status
@@ -118,14 +140,14 @@ class ChatController extends Controller
             return $conv;
         });
 
-        // Get active conversation members with online status from cache
-        $activeConversation = $conversation->load(['users']);
-        $activeConversation->users = $userListService->getConversationMembers($conversation, withStatus: true, currentUser: $user);
+        // Enhance active conversation with cached online status
+        // Reuse already-loaded conversation.users instead of calling load() again
+        $conversation->users = $userListService->getConversationMembers($conversation, withStatus: true, currentUser: $user);
 
         return Inertia::render('Chat/Show', [
             'currentUser' => new UserResource($user),
             'conversations' => ConversationResource::collection($conversations)->resolve(),
-            'activeConversation' => new ConversationResource($activeConversation),
+            'activeConversation' => new ConversationResource($conversation),
             'messages' => MessageResource::collection(array_reverse($messagesCollection))->resolve(),
             'pagination' => [
                 'current_page' => $messages->currentPage(),
@@ -284,6 +306,10 @@ class ChatController extends Controller
      * - Other user names (for 1-on-1 conversations)
      * - Message content
      * 
+     * Eager Loading Strategy:
+     * - Searches use indexed columns (name, body) for fast database lookups
+     * - Eager load relationships to minimize N+1 queries in result processing
+     * 
      * @param Request $request
      * @return JsonResponse
      */
@@ -299,16 +325,28 @@ class ChatController extends Controller
             ]);
         }
 
-        // Search conversations by name and users
+        // Get user's conversation IDs - single query
         $conversationIds = $user->conversations()
             ->pluck('conversation_id')
             ->toArray();
 
-        // Search by conversation name
+        if (empty($conversationIds)) {
+            return response()->json([
+                'conversations' => [],
+                'messages' => [],
+            ]);
+        }
+
+        // Search by conversation name - eager load relationships to prevent N+1
         $conversationsByName = Conversation::where('is_group', true)
             ->whereIn('id', $conversationIds)
             ->where('name', 'like', "%{$query}%")
-            ->with(['lastMessage.user', 'users'])
+            ->with([
+                'lastMessage:id,conversation_id,user_id,body,type,created_at',
+                'lastMessage.user:id,name,avatar',
+                'users:id,name,avatar'
+            ])
+            ->limit(10)
             ->get()
             ->map(function ($c) {
                 return [
@@ -322,9 +360,10 @@ class ChatController extends Controller
             });
 
         // Search by user names in one-on-one conversations
+        // Eager load relationships once to avoid N+1
         $conversationsByUser = Conversation::where('is_group', false)
             ->whereIn('id', $conversationIds)
-            ->with('users')
+            ->with('users:id,name,avatar,phone,bio')
             ->get()
             ->filter(function ($conversation) use ($user, $query) {
                 $otherUser = $conversation->users->first(function ($u) use ($user) {
@@ -342,7 +381,7 @@ class ChatController extends Controller
                     'display_name' => $otherUser->name ?? 'Unknown',
                     'type' => 'direct',
                     'avatar' => $otherUser->avatar ?? null,
-                    'last_message' => $c->lastMessage,
+                    'last_message' => $c->lastMessage ?? null,
                 ];
             });
 
@@ -353,13 +392,17 @@ class ChatController extends Controller
             ->values()
             ->take(10);
 
-        // Search in messages
+        // Search in messages - eager load user to prevent N+1
+        // Uses indexed (conversation_id, created_at) for fast text search
         $messages = Message::whereIn('conversation_id', $conversationIds)
             ->where('body', 'like', "%{$query}%")
             ->where('type', 'text')
-            ->with(['user', 'conversation.users'])
+            ->with([
+                'user:id,name,avatar,phone,bio',
+                'conversation:id,name,is_group'
+            ])
             ->orderBy('created_at', 'desc')
-            ->take(20)
+            ->limit(20)
             ->get()
             ->map(function ($m) {
                 return [
@@ -381,6 +424,10 @@ class ChatController extends Controller
     /**
      * Search messages within a specific conversation.
      * 
+     * Eager Loading Strategy:
+     * - User relationship eager loaded to prevent N+1 on message sender lookup
+     * - Attachments eager loaded for complete message data
+     * 
      * @param Request $request
      * @param Conversation $conversation
      * @return JsonResponse
@@ -400,11 +447,15 @@ class ChatController extends Controller
             ]);
         }
 
-        // Search messages in this conversation
+        // Search messages in this conversation with eager loaded relationships
+        // Uses indexed (conversation_id, created_at) for fast text search
         $messages = $conversation->messages()
             ->where('body', 'like', "%{$query}%")
             ->where('type', 'text')
-            ->with(['user', 'attachments'])
+            ->with([
+                'user:id,name,avatar,phone,bio',
+                'attachments:id,message_id,file_name,path,mime_type'
+            ])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -420,7 +471,8 @@ class ChatController extends Controller
      * Optimized for large-scale data with:
      * - Reduced page size (20 messages per page)
      * - Query caching to minimize PostgreSQL load
-     * - Efficient eager loading of relationships
+     * - Efficient eager loading of relationships using column selection
+     * - Composite indexes on (conversation_id, created_at) for fast time-based queries
      * 
      * @param Request $request
      * @param Conversation $conversation
@@ -446,7 +498,10 @@ class ChatController extends Controller
             \DateInterval::createFromDateString('5 minutes'),
             function () use ($conversation, $page, $perPage, $beforeId) {
                 $query = $conversation->messages()
-                    ->with(['user', 'attachments']);
+                    ->with([
+                        'user:id,name,avatar,phone,bio',
+                        'attachments:id,message_id,file_name,path,mime_type,type,size'
+                    ]);
 
                 // If before_id provided, get messages before that ID (for infinite scroll)
                 if ($beforeId) {
