@@ -1,0 +1,425 @@
+
+  [39;41;1m FAIL [39;49;22m[39m Tests\Feature\ChatControllerTest[39m
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mindex() - List All Conversations[39m[90m →[39m[90m…[39m [90m11.53s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mindex() - List All Conversations[39m[90m →[39m[90m… [39m [90m0.03s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mindex() - List All Conversations[39m[90m →[39m[90m… [39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mindex() - List All Conversations[39m[90m →[39m[90m… [39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mindex() - List All Conversations[39m[90m →[39m[90m… [39m [90m3.62s[39m  
+  [32;1m✓[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mindex() - List All Conversations[39m[90m →[39m[90m… [39m [90m0.28s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mshow() - Display Single Conversatio[39m[90m…[39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mshow() - Display Single Conversatio[39m[90m…[39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mshow() - Display Single Conversatio[39m[90m…[39m [90m0.06s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mshow() - Display Single Conversatio[39m[90m…[39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mshow() - Display Single Conversatio[39m[90m…[39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mshow() - Display Single Conversatio[39m[90m…[39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mstore() - Create New Message[39m[90m → it s[39m[90m…[39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mstore() - Create New Message[39m[90m → it f[39m[90m…[39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mstore() - Create New Message[39m[90m → it s[39m[90m…[39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mstore() - Create New Message[39m[90m → it s[39m[90m…[39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mstore() - Create New Message[39m[90m → it v[39m[90m…[39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mstore() - Create New Message[39m[90m → it s[39m[90m…[39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mstore() - Create New Message[39m[90m → it d[39m[90m…[39m [90m0.02s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mstore() - Create New Message[39m[90m → it r[39m[90m…[39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mQuery Optimization Tests[39m[90m → it loads[39m[90m…[39m [90m0.01s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mQuery Optimization Tests[39m[90m → it does[39m[90m… [39m [90m0.09s[39m  
+  [31;1m⨯[39;22m[90m [39m[37mChatController[39m[90m → [39m[37mQuery Optimization Tests[39m[90m → it show[39m[90m… [39m [90m0.02s[39m  
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatController[22m… [41;1m AssertionFailedError [49;22m  
+[39;1m  Not a valid Inertia response.[39;22m
+
+  at [32mvendor\inertiajs\inertia-laravel\src\Testing\AssertableInertia.php[39m:[32m84[39m
+     80▕             PHPUnit::assertArrayHasKey('version', $page);
+     81▕             PHPUnit::assertArrayHasKey('encryptHistory', $page);
+     82▕             PHPUnit::assertArrayHasKey('clearHistory', $page);
+     83▕         } catch (AssertionFailedError $e) {
+  ➜  84▕             PHPUnit::fail('Not a valid Inertia response.');
+     85▕         }
+     86▕ 
+     87▕         $instance = static::fromArray($page['props']);
+     88▕         $instance->component = $page['component'];
+
+  [33m1   [39m[39;1mvendor\inertiajs\inertia-laravel\src\Testing\AssertableInertia.php[39;22m:[39;1m84[39;22m
+  [33m2   [39m[39;1mvendor\inertiajs\inertia-laravel\src\Testing\TestResponseMacros.php[39;22m:[39;1m20[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+  [31m─────────────────────────────────────────────────────────────[39m  
+  [41;1m FAILED [49;22m [1mTests\Feature\ChatControll[22m… [41;1m BadMethodCallException [49;22m  
+[39;1m  Call to undefined method App\Models\Conversation::factory()[39;22m
+
+  at [32mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39m:[32m67[39m
+     63▕      * @throws \BadMethodCallException
+     64▕      */
+     65▕     protected static function throwBadMethodCallException($method)
+     66▕     {
+  ➜  67▕         throw new BadMethodCallException(sprintf(
+     68▕             'Call to undefined method %s::%s()', static::class, $method
+     69▕         ));
+     70▕     }
+     71▕ }
+
+  [33m1   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m67[39;22m
+  [33m2   [39m[39;1mvendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php[39;22m:[39;1m36[39;22m
+
+
+  [90mTests:[39m    [31;1m22 failed[39;22m[90m,[39m[39m [39m[32;1m1 passed[39;22m[90m (4 assertions)[39m
+  [90mDuration:[39m [39m23.08s[39m
+

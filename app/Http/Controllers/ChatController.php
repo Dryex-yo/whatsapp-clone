@@ -150,12 +150,9 @@ class ChatController extends Controller
     {
         $user = $request->user();
 
-        // Authorize: User must be part of this conversation
-        abort_unless($conversation->users->contains($user->id), 403);
-
         // Authorize: Check if user is allowed to send messages (blocked users cannot)
-        // This also checks if user is blocked by conversation members
-        $this->authorize('create', Message::class, $conversation);
+        // This also checks if user is part of conversation and not blocked by members
+        $this->authorize('create', $conversation);
 
         // Validate input
         $validated = $request->validate([

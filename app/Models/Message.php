@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Database\Factories\MessageFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -34,7 +36,7 @@ use Carbon\Carbon;
  */
 class Message extends Model
 {
-    use SoftDeletes;
+    use SoftDeletes, HasFactory;
 
     /**
      * The attributes that are mass assignable.
