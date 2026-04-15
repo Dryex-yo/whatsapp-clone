@@ -186,6 +186,7 @@ export const SearchInChat: React.FC<SearchInChatProps> = ({
  */
 export const useSearchInChat = () => {
     const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+    const [searchQuery, setSearchQuery] = React.useState('');
 
     React.useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -204,5 +205,5 @@ export const useSearchInChat = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    return { isSearchOpen, setIsSearchOpen };
+    return { isSearchOpen, setIsSearchOpen, searchQuery, setSearchQuery };
 };

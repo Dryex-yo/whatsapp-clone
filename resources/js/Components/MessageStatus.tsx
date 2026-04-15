@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check } from 'lucide-react';
+import { Check, Clock } from 'lucide-react';
 import type { Message } from '@/types/chat';
 
 export interface MessageStatusProps {
@@ -12,6 +12,7 @@ export interface MessageStatusProps {
  * Displays message delivery status using tick icons based on message status
  * 
  * States:
+ * - pending: Clock icon (message waiting to be sent/confirmed)
  * - sent: One gray tick (message sent to server)
  * - delivered: Two gray ticks (message received by recipient's device)
  * - read: Two blue ticks (message read by recipient)
@@ -26,6 +27,15 @@ export const MessageStatus: React.FC<MessageStatusProps> = ({
     const blueColor = '#31a24c';
 
     switch (status) {
+        case 'pending':
+            return (
+                <Clock 
+                    className={className}
+                    color={grayColor}
+                    strokeWidth={2}
+                    title="Sending..."
+                />
+            );
         case 'delivered':
             return (
                 <div className="flex items-center gap-px">

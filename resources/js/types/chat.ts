@@ -70,12 +70,12 @@ export interface MessageAttachment {
  * Message Type - Represents a single message
  */
 export interface Message {
-    id: number;
+    id: number | string; // Can be temporary string ID for optimistic updates
     conversation_id: number;
     user_id: number;
     body: string;
     type: 'text' | 'image' | 'video' | 'audio' | 'file'; // Message type (legacy)
-    status: 'sent' | 'delivered' | 'read'; // Message delivery status
+    status: 'pending' | 'sent' | 'delivered' | 'read'; // Message delivery status (pending = optimistic)
     file_path?: string; // File path if type is 'image', 'audio', 'video' or 'file' (legacy)
     file_size?: number; // File size in bytes (legacy)
     mime_type?: string; // MIME type (e.g., 'image/jpeg', 'audio/webm', 'application/pdf') (legacy)
@@ -84,6 +84,10 @@ export interface Message {
     deleted_at?: string | null; // ISO 8601 timestamp when soft deleted
     created_at?: string;
     updated_at?: string;
+    // Optimistic update properties
+    is_optimistic?: boolean; // True if this message is waiting for server confirmation
+    server_id?: number; // Permanent ID from server once confirmed
+    error_message?: string; // Error message if sending failed
     // Related data
     sender?: User;
     user?: User; // Alias for sender

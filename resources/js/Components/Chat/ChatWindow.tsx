@@ -51,7 +51,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const { saveScrollPosition, restoreScrollPosition } = useScrollPosition(messagesContainerRef);
-    const { isSearchOpen, setIsSearchOpen } = useSearchInChat();
+    const { isSearchOpen, setIsSearchOpen, searchQuery, setSearchQuery } = useSearchInChat();
 
     // Infinite scroll sentinel reference
     const sentinelRef = useInfiniteScroll({
@@ -222,6 +222,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                                     messages={group.messages}
                                     currentUser={currentUser}
                                     isGroup={conversation.is_group}
+                                    searchTerm={searchQuery}
                                 />
                             </motion.div>
                         ))}
@@ -278,6 +279,7 @@ export const ChatWindowCompact: React.FC<ChatWindowProps> = ({
     onlineUsers = {},
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const { isSearchOpen, setIsSearchOpen, searchQuery } = useSearchInChat();
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

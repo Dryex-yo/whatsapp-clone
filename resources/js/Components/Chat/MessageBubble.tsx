@@ -5,6 +5,7 @@ import { ImageMessage } from '@/Components/ImageMessage';
 import { AudioPlayer } from '@/Components/Chat/AudioPlayer';
 import { MessageStatus } from '@/Components/MessageStatus';
 import { StarButton } from '@/Components/Chat/StarButton';
+import { HighlightedText } from '@/utils/highlightUtils';
 import { getUserColor } from '@/utils/colorUtils';
 import { decryptMessage, generateEncryptionKey } from '@/utils/encryption';
 import { sanitizeAsText } from '@/utils/sanitize';
@@ -16,19 +17,22 @@ export interface MessageBubbleProps {
     currentUser: User;
     isConsecutive?: boolean;
     isGroup?: boolean;
+    searchTerm?: string; // For highlighting search matches
 }
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ 
     message, 
     currentUser, 
     isConsecutive,
-    isGroup = false
+    isGroup = false,
+    searchTerm = '',
 }) => {
     const [isStarred, setIsStarred] = useState(message.is_starred || false);
     const [displayedBody, setDisplayedBody] = useState<string>(message.body || '');
     const [decryptionError, setDecryptionError] = useState<string | null>(null);
     
     const isSent = message.user_id === currentUser.id;
+    const isOptimistic = (message as any).is_optimistic === true;
     const timestamp = message.created_at ? new Date(message.created_at).toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
@@ -126,7 +130,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                         isSent
                             ? 'bg-[#005c4b] text-white rounded-bl-lg'
                             : 'bg-[#202c33] text-gray-100 rounded-br-lg'
-                    }`}
+                    } ${isOptimistic ? 'opacity-70' : ''}`}
                 >
                     {/* Attachments (new media system) */}
                     {message.attachments && message.attachments.length > 0 && (
@@ -145,7 +149,16 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                     {/* Message Type: Text */}
                     {message.type === 'text' && (
                         <div className="flex items-center gap-2">
-                            <p className="text-sm break-words">{displayedBody}</p>
+                            {searchTerm ? (
+                                <HighlightedText
+                                    text={displayedBody}
+                                    searchTerm={searchTerm}
+                                    className="text-sm break-words"
+                                    highlightClassName="bg-yellow-400 bg-opacity-70 font-semibold rounded px-1"
+                                />
+                            ) : (
+                                <p className="text-sm break-words">{displayedBody}</p>
+                            )}
                             {decryptionError && (
                                 <div className="relative group">
                                     <AlertCircle className="w-4 h-4 text-orange-400" />
@@ -224,12 +237,13 @@ export interface MessageGroupProps {
     messages: Message[];
     currentUser: User;
     isGroup?: boolean;
+    searchTerm?: string; // For highlighting search matches
 }
 
 /**
  * Groups consecutive messages from the same sender
  */
-export const MessageGroup: React.FC<MessageGroupProps> = ({ messages, currentUser, isGroup = false }) => {
+export const MessageGroup: React.FC<MessageGroupProps> = ({ messages, currentUser, isGroup = false, searchTerm = '' }) => {
     return (
         <motion.div
             layout
@@ -250,6 +264,7 @@ export const MessageGroup: React.FC<MessageGroupProps> = ({ messages, currentUse
                         currentUser={currentUser}
                         isConsecutive={isConsecutive}
                         isGroup={isGroup}
+                        searchTerm={searchTerm}
                     />
                 );
             })}
