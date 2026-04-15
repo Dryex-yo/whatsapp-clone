@@ -2,6 +2,8 @@
  * Text highlighting utilities for search within chat
  */
 
+import React from 'react';
+
 /**
  * Highlights text by wrapping matches with a special marker
  * @param text - Text to highlight
@@ -33,7 +35,6 @@ export function highlightText(text: string, searchTerm: string): string[] {
 /**
  * React component that renders highlighted text
  */
-import React from 'react';
 
 export interface HighlightedTextProps {
     text: string;

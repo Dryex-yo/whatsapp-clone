@@ -3,6 +3,7 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import TextArea from '@/Components/TextArea';
+import ImageCropper from '@/Components/ImageCropper';
 import { Transition } from '@headlessui/react';
 import { Link, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler, useRef, useState } from 'react';
@@ -20,6 +21,8 @@ export default function UpdateProfileSettingsForm({
     const user = usePage().props.auth.user as UserType & { bio?: string; last_seen_privacy?: string; avatar?: string };
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const [showCropper, setShowCropper] = useState(false);
+    const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
     const { data, setData, post, errors, processing, recentlySuccessful, reset } =
         useForm<{
@@ -37,14 +40,38 @@ export default function UpdateProfileSettingsForm({
     const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setData('avatar', file);
-            // Create preview URL
+            // Create reader to get the image data for cropper
             const reader = new FileReader();
             reader.onloadend = () => {
-                setPreviewUrl(reader.result as string);
+                setImageToCrop(reader.result as string);
+                setShowCropper(true);
             };
             reader.readAsDataURL(file);
         }
+    };
+
+    const handleCropComplete = (croppedBlob: Blob) => {
+        // Convert blob to File
+        const croppedFile = new File([croppedBlob], 'avatar.jpg', {
+            type: 'image/jpeg',
+        });
+
+        setData('avatar', croppedFile);
+
+        // Create preview URL
+        const previewReader = new FileReader();
+        previewReader.onloadend = () => {
+            setPreviewUrl(previewReader.result as string);
+        };
+        previewReader.readAsDataURL(croppedBlob);
+
+        setShowCropper(false);
+        setImageToCrop(null);
+    };
+
+    const handleCropCancel = () => {
+        setShowCropper(false);
+        setImageToCrop(null);
     };
 
     const submit: FormEventHandler = (e) => {
@@ -246,6 +273,15 @@ export default function UpdateProfileSettingsForm({
                     </Transition>
                 </div>
             </form>
+
+            {/* Image Cropper Modal */}
+            {showCropper && imageToCrop && (
+                <ImageCropper
+                    imageSrc={imageToCrop}
+                    onCropComplete={handleCropComplete}
+                    onCancel={handleCropCancel}
+                />
+            )}
         </section>
     );
 }

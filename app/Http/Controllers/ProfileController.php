@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Services\ImageCompressionService;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,19 +29,26 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request, ImageCompressionService $compressionService): RedirectResponse
     {
         $data = $request->validated();
 
-        // Handle avatar upload
+        // Handle avatar upload and compression
         if ($request->hasFile('avatar')) {
             // Delete old avatar if exists
             if ($request->user()->avatar) {
                 Storage::disk('public')->delete($request->user()->avatar);
             }
 
-            // Store new avatar
-            $path = $request->file('avatar')->store('avatars', 'public');
+            // Compress the image for profile picture use
+            $compressedFile = $compressionService->compressProfilePicture(
+                $request->file('avatar'),
+                size: 400,
+                quality: 85
+            );
+
+            // Store the compressed avatar
+            $path = $compressedFile->store('avatars', 'public');
             $data['avatar'] = $path;
         }
 
