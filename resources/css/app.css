@@ -48,6 +48,82 @@
    Smooth Animations
    ============================================================================ */
 
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes floatUp {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 @layer components {
     .btn-ghost-primary {
         @apply transition-all duration-200 ease-out hover:scale-105 active:scale-95;
@@ -55,6 +131,78 @@
     
     .message-bubble-enter {
         @apply animate-in fade-in slide-in-from-bottom-2 duration-300;
+    }
+
+    /* Auth Page Animations */
+    .auth-container-enter {
+        animation: fadeInDown 0.6s ease-out;
+    }
+
+    .auth-card-enter {
+        animation: scaleIn 0.5s ease-out 0.1s both;
+    }
+
+    .auth-form-group {
+        animation: fadeInUp 0.5s ease-out backwards;
+    }
+
+    .auth-form-group:nth-child(1) { animation-delay: 0.1s; }
+    .auth-form-group:nth-child(2) { animation-delay: 0.15s; }
+    .auth-form-group:nth-child(3) { animation-delay: 0.2s; }
+    .auth-form-group:nth-child(4) { animation-delay: 0.25s; }
+    .auth-form-group:nth-child(5) { animation-delay: 0.3s; }
+
+    .auth-button-enter {
+        animation: fadeInUp 0.5s ease-out 0.35s both;
+    }
+
+    .auth-link-enter {
+        animation: fadeInUp 0.5s ease-out 0.4s both;
+    }
+
+    .input-focus-effect {
+        @apply transition-all duration-300 ease-out;
+    }
+
+    .input-focus-effect:focus {
+        @apply ring-2 ring-indigo-500 ring-offset-2 shadow-lg;
+    }
+
+    .btn-primary-auth {
+        @apply relative overflow-hidden transition-all duration-300 ease-out;
+    }
+
+    .btn-primary-auth:hover {
+        @apply shadow-lg translate-y-[-2px];
+    }
+
+    .btn-primary-auth:active {
+        @apply translate-y-0 shadow-md;
+    }
+
+    .auth-divider {
+        @apply relative my-6;
+    }
+
+    .auth-divider::before {
+        @apply absolute inset-x-0 top-1/2 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent;
+        content: '';
+    }
+
+    .auth-badge {
+        animation: slideInRight 0.5s ease-out;
+    }
+
+    .status-message-enter {
+        animation: fadeInDown 0.4s ease-out;
+    }
+
+    .input-label-animated {
+        @apply transition-all duration-200 ease-out;
+    }
+
+    .form-transition {
+        @apply transition-all duration-300 ease-out;
     }
 }
 
