@@ -55,8 +55,9 @@ class MessageResource extends JsonResource
             'is_edited' => $this->edited_at !== null,
             'is_starred' => $this->getIsStarred($request),
             'formatted_file_size' => $formattedFileSize,
-            // Relationships (only include sender for message details)
-            'sender' => new UserResource($this->whenLoaded('user')),
+            // Relationships (only include user/sender for message details)
+            'user' => new UserResource($this->whenLoaded('user')),
+            'sender' => new UserResource($this->whenLoaded('user')), // Alias for compatibility
             'attachments' => MessageAttachmentResource::collection($this->whenLoaded('attachments')),
         ];
     }
