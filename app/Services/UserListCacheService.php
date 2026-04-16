@@ -9,7 +9,7 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 
 /**
- * UserListCacheService - Manages user list caching with Redis
+ * UserListCacheService - Manages user list caching
  * 
  * Caches conversation member lists and user search results to reduce
  * PostgreSQL query load during high-traffic periods.
@@ -32,7 +32,7 @@ class UserListCacheService
     {
         $cacheKey = static::CONVERSATION_USERS_KEY . $conversation->id . ($withStatus ? ':status' : '');
 
-        return Cache::store('redis')->remember(
+        return Cache::remember(
             $cacheKey,
             now()->addMinutes(self::CACHE_TTL_MINUTES),
             function () use ($conversation, $withStatus, $currentUser) {
@@ -71,7 +71,7 @@ class UserListCacheService
     {
         $cacheKey = static::CONVERSATION_USERS_KEY . $conversation->id . ':count';
 
-        return Cache::store('redis')->remember(
+        return Cache::remember(
             $cacheKey,
             now()->addMinutes(self::CACHE_TTL_MINUTES),
             function () use ($conversation) {
@@ -97,7 +97,7 @@ class UserListCacheService
 
         $cacheKey = static::SEARCH_USERS_KEY . md5($search) . ':limit:' . $limit;
 
-        return Cache::store('redis')->remember(
+        return Cache::remember(
             $cacheKey,
             now()->addMinutes(self::CACHE_TTL_MINUTES),
             function () use ($search, $limit) {
@@ -128,9 +128,9 @@ class UserListCacheService
      */
     public function invalidateConversationCache(Conversation $conversation): void
     {
-        Cache::store('redis')->forget(static::CONVERSATION_USERS_KEY . $conversation->id);
-        Cache::store('redis')->forget(static::CONVERSATION_USERS_KEY . $conversation->id . ':status');
-        Cache::store('redis')->forget(static::CONVERSATION_USERS_KEY . $conversation->id . ':count');
+        Cache::forget(static::CONVERSATION_USERS_KEY . $conversation->id);
+        Cache::forget(static::CONVERSATION_USERS_KEY . $conversation->id . ':status');
+        Cache::forget(static::CONVERSATION_USERS_KEY . $conversation->id . ':count');
     }
 
     /**
@@ -167,8 +167,8 @@ class UserListCacheService
         $conversationIds = $user->conversations()->pluck('conversation_id');
         foreach ($conversationIds as $conversationId) {
             $cacheKey = static::CONVERSATION_USERS_KEY . $conversationId;
-            Cache::store('redis')->forget($cacheKey);
-            Cache::store('redis')->forget($cacheKey . ':status');
+            Cache::forget($cacheKey);
+            Cache::forget($cacheKey . ':status');
         }
     }
 

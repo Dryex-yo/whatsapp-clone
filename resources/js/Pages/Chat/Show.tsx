@@ -46,9 +46,9 @@ export default function ChatShowPage() {
     const [isInitialLoad, setIsInitialLoad] = useState(true); // Track initial page load
     const [isSending, setIsSending] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
-    const [currentPage, setCurrentPage] = useState(props.pagination?.current_page || 1);
+    const [currentPage, setCurrentPage] = useState<number>(Number(props.pagination?.current_page) || 1);
     const [hasMoreMessages, setHasMoreMessages] = useState(
-        props.pagination ? currentPage < props.pagination.last_page : false
+        props.pagination ? currentPage < (Number(props.pagination.last_page) || 1) : false
     );
     const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
     const [isGroupSettingsOpen, setIsGroupSettingsOpen] = useState(false);
@@ -100,7 +100,7 @@ export default function ChatShowPage() {
             if (sender) {
                 // Trigger notification for incoming message
                 notifications.notifyNewMessage(lastMessage, sender);
-                lastNotifiedMessageRef.current = lastMessage.id;
+                lastNotifiedMessageRef.current = typeof lastMessage.id === 'string' ? parseInt(lastMessage.id) : lastMessage.id;
             }
         }
     }, [messages, currentUser?.id, activeConversation?.id, conversationsArray, notifications]);
@@ -279,7 +279,7 @@ export default function ChatShowPage() {
             
             // Update hasMoreMessages based on pagination response
             if (data.pagination) {
-                setHasMoreMessages(data.pagination.has_more || nextPage < data.pagination.last_page);
+                setHasMoreMessages(data.pagination.has_more || nextPage < Number(data.pagination.last_page));
             }
         } catch (error) {
             console.error('Failed to load more messages:', error);

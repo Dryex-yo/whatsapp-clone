@@ -49,6 +49,12 @@ return new class extends Migration
      */
     public function up(): void
     {
+        // Only apply partitioning for PostgreSQL
+        // For testing (SQLite) and other databases, skip this migration
+        if (DB::getDriverName() !== 'pgsql') {
+            return;
+        }
+
         // STEP 1: Create the parent partitioned table
         // PostgreSQL requires that PRIMARY KEY includes all partitioning columns
         // Since partitioning by created_at, must include it in composite key
@@ -118,6 +124,11 @@ return new class extends Migration
      */
     public function down(): void
     {
+        // Only apply for PostgreSQL
+        if (DB::getDriverName() !== 'pgsql') {
+            return;
+        }
+
         DB::connection()->transaction(function () {
             // Drop partitioned table
             DB::statement("DROP TABLE IF EXISTS messages");

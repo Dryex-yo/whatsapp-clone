@@ -33,7 +33,6 @@ export const MessageStatus: React.FC<MessageStatusProps> = ({
                     className={className}
                     color={grayColor}
                     strokeWidth={2}
-                    title="Sending..."
                 />
             );
         case 'delivered':

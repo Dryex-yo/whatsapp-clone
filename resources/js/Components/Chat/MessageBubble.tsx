@@ -167,9 +167,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                                     </div>
                                 </div>
                             )}
-                            {(message as any).is_encrypted && !decryptionError && (
-                                <span className="text-xs opacity-60" title="End-to-End Encrypted">🔒</span>
-                            )}
                         </div>
                     )}
 
@@ -222,7 +219,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 {/* Message Actions - Star button */}
                 <div className="flex items-center gap-1 mt-1 px-1">
                     <StarButton
-                        messageId={message.id}
+                        messageId={typeof message.id === 'string' ? parseInt(message.id) : message.id}
                         isStarred={isStarred}
                         onStarToggle={setIsStarred}
                         size={16}

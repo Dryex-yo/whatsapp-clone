@@ -7,13 +7,12 @@ use App\Models\Conversation;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Redis;
 
 /**
- * OnlineStatusCacheService - Manages online status caching with Redis
+ * OnlineStatusCacheService - Manages online status caching
  * 
  * Optimizes user presence tracking and reduces PostgreSQL query load
- * by caching online status in Redis with 5-minute TTL.
+ * by caching online status in file cache with 5-minute TTL.
  */
 class OnlineStatusCacheService
 {
@@ -24,6 +23,14 @@ class OnlineStatusCacheService
     private const CONVERSATION_MEMBERS_STR = 'conversation:members:';
 
     /**
+     * Get the cache store (uses default configured in config/cache.php)
+     */
+    private function getCacheStore()
+    {
+        return Cache::store();
+    }
+
+    /**
      * Check if a user is online
      */
     public function isOnline(User|int $user): bool
@@ -31,8 +38,8 @@ class OnlineStatusCacheService
         $userId = $user instanceof User ? $user->id : $user;
         $cacheKey = static::STATUS_KEY_PREFIX . $userId;
 
-        // Check Redis cache first
-        $cachedStatus = Cache::store('redis')->get($cacheKey);
+        // Check cache first
+        $cachedStatus = $this->getCacheStore()->get($cacheKey);
         if ($cachedStatus !== null) {
             return (bool) $cachedStatus;
         }
@@ -46,7 +53,7 @@ class OnlineStatusCacheService
         $isOnline = $user->last_seen && $user->last_seen->isAfter(now()->subMinutes(self::ONLINE_THRESHOLD_MINUTES));
 
         // Cache the result
-        Cache::store('redis')->put(
+        $this->getCacheStore()->put(
             $cacheKey,
             (int) $isOnline,
             now()->addMinutes(self::CACHE_TTL_MINUTES)
@@ -65,11 +72,12 @@ class OnlineStatusCacheService
     {
         $statuses = [];
         $notCached = [];
+        $cacheStore = $this->getCacheStore();
 
-        // Check Redis cache for all users
+        // Check cache for all users
         foreach ($userIds as $userId) {
             $cacheKey = static::STATUS_KEY_PREFIX . $userId;
-            $cached = Cache::store('redis')->get($cacheKey);
+            $cached = $cacheStore->get($cacheKey);
             
             if ($cached !== null) {
                 $statuses[$userId] = (bool) $cached;
@@ -87,7 +95,7 @@ class OnlineStatusCacheService
                 $statuses[$user->id] = $isOnline;
 
                 // Cache the result
-                Cache::store('redis')->put(
+                $cacheStore->put(
                     static::STATUS_KEY_PREFIX . $user->id,
                     (int) $isOnline,
                     now()->addMinutes(self::CACHE_TTL_MINUTES)
@@ -115,18 +123,23 @@ class OnlineStatusCacheService
 
         $isOnline = $lastSeen->isAfter(now()->subMinutes(self::ONLINE_THRESHOLD_MINUTES));
 
-        // Cache the online status
-        Cache::store('redis')->put(
+        // Cache the online status via cache store
+        $cacheStore = $this->getCacheStore();
+        $cacheStore->put(
             $cacheKey,
             (int) $isOnline,
             now()->addMinutes(self::CACHE_TTL_MINUTES)
         );
 
-        // Also add to global online users set for quick lookups
+        // Also store online status in a way that works across different cache backends
         if ($isOnline) {
-            Redis::setex(static::ONLINE_USERS_KEY . ':' . $user->id, self::CACHE_TTL_MINUTES * 60, 1);
+            $cacheStore->put(
+                static::ONLINE_USERS_KEY . ':' . $user->id,
+                1,
+                now()->addMinutes(self::CACHE_TTL_MINUTES)
+            );
         } else {
-            Redis::del(static::ONLINE_USERS_KEY . ':' . $user->id);
+            $cacheStore->forget(static::ONLINE_USERS_KEY . ':' . $user->id);
         }
     }
 
@@ -136,8 +149,11 @@ class OnlineStatusCacheService
     public function invalidate(User|int $user): void
     {
         $userId = $user instanceof User ? $user->id : $user;
-        Cache::store('redis')->forget(static::STATUS_KEY_PREFIX . $userId);
-        Redis::del(static::ONLINE_USERS_KEY . ':' . $userId);
+        $cacheStore = $this->getCacheStore();
+        
+        // Remove from cache store
+        $cacheStore->forget(static::STATUS_KEY_PREFIX . $userId);
+        $cacheStore->forget(static::ONLINE_USERS_KEY . ':' . $userId);
     }
 
     /**
@@ -150,7 +166,7 @@ class OnlineStatusCacheService
     {
         $cacheKey = static::CONVERSATION_MEMBERS_STR . $conversation->id . ':online';
 
-        return Cache::store('redis')->remember(
+        return $this->getCacheStore()->remember(
             $cacheKey,
             now()->addMinutes(self::CACHE_TTL_MINUTES),
             function () use ($conversation) {
@@ -173,7 +189,7 @@ class OnlineStatusCacheService
     public function invalidateConversationCache(Conversation $conversation): void
     {
         $cacheKey = static::CONVERSATION_MEMBERS_STR . $conversation->id . ':online';
-        Cache::store('redis')->forget($cacheKey);
+        $this->getCacheStore()->forget($cacheKey);
     }
 
     /**
@@ -186,7 +202,7 @@ class OnlineStatusCacheService
     {
         $cacheKey = static::CONVERSATION_MEMBERS_STR . $conversation->id . ':all';
 
-        return Cache::store('redis')->remember(
+        return $this->getCacheStore()->remember(
             $cacheKey,
             now()->addMinutes(self::CACHE_TTL_MINUTES),
             function () use ($conversation) {
@@ -217,11 +233,11 @@ class OnlineStatusCacheService
     /**
      * Clear all online status caches
      * 
-     * Clears all Redis cache entries - use with caution
+     * Clears all cache entries - use with caution
      */
     public function clearAll(): void
     {
-        // Use Artisan command or direct Redis flush
-        Redis::flushDb();
+        // Use Cache facade to flush all cache entries
+        Cache::flush();
     }
 }

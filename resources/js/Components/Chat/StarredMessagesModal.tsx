@@ -217,7 +217,7 @@ const StarredMessageItem: React.FC<StarredMessageItemProps> = ({
                 {/* Star Button */}
                 <div className="flex-shrink-0">
                     <StarButton
-                        messageId={message.id}
+                        messageId={typeof message.id === 'string' ? parseInt(message.id) : message.id}
                         isStarred={true}
                         onStarToggle={(starred) => {
                             if (!starred) {
