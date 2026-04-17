@@ -6,7 +6,8 @@ import { ChatWindow } from '@/Components/Chat/ChatWindow';
 import { StarredMessagesModal } from '@/Components/Chat/StarredMessagesModal';
 import { ProfileSettingsModal } from '@/Components/Chat/ProfileSettingsModal';
 import { NewGroupModal } from '@/Components/Chat/NewGroupModal';
-import WelcomeScreen from '@/Components/Chat/WelcomeScreen';
+import { EmptyConversationState } from '@/Components/Chat/EmptyConversationState';
+import { NoConversationsState } from '@/Components/Chat/NoConversationsState';
 import type { Conversation, Message, User } from '@/types/chat';
 import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
@@ -107,13 +108,13 @@ export default function ChatIndexPage() {
     }, []);
 
     return (
-        <div className="relative h-screen bg-[#111b21] overflow-hidden">
+        <div className="fixed inset-0 w-screen h-screen bg-[#0b141a] overflow-hidden">
             {/* Main Layout Container - Base layer */}
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
-                className="flex h-screen"
+                className="flex h-screen w-screen"
             >
                 {/* Sidebar - Desktop: always visible, Mobile: hidden when chat selected */}
                 <AnimatePresence mode="wait">
@@ -174,7 +175,9 @@ export default function ChatIndexPage() {
                     transition={{ duration: 0.4, delay: 0.1 }}
                     className="hidden md:flex md:flex-col md:flex-1 md:relative md:z-5"
                 >
-                    {activeConversation ? (
+                    {conversationsArray.length === 0 ? (
+                        <NoConversationsState onCreateGroup={() => openModal('groupCreate')} />
+                    ) : activeConversation ? (
                         <ChatWindow
                             conversation={activeConversation}
                             currentUser={currentUser}
@@ -183,7 +186,7 @@ export default function ChatIndexPage() {
                             onSendMessage={handleSendMessage}
                         />
                     ) : (
-                        <WelcomeScreen />
+                        <EmptyConversationState />
                     )}
                 </motion.div>
             </motion.div>
