@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { usePage, router } from '@inertiajs/react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ConversationSidebar } from '@/Components/Chat/ConversationSidebar';
 import { ChatWindow } from '@/Components/Chat/ChatWindow';
+import WelcomeScreen from '@/Components/Chat/WelcomeScreen';
 import type { Conversation, Message, User } from '@/types/chat';
 import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
@@ -12,28 +13,44 @@ interface PageProps extends InertiaPageProps {
     conversations: Conversation[];
 }
 
+// Modal types for unified state management
+type ActiveModalType = 'starred' | 'profile' | 'groupCreate' | null;
+
 /**
  * Chat Index Page
  * 
- * Displays list of conversations with sidebar and empty chat window
- * Allows user to select a conversation to view details
+ * Displays list of conversations with responsive sidebar and empty chat window
+ * Features unified modal management, proper z-index hierarchy, and responsive design
  */
 export default function ChatIndexPage() {
     const { props } = usePage<PageProps>();
     const { currentUser, conversations: initialConversations } = props;
 
     // Ensure conversations is always an array
-    const conversationsArray = Array.isArray(initialConversations) ? initialConversations : [];
+    const conversationsArray = useMemo(
+        () => Array.isArray(initialConversations) ? initialConversations : [],
+        [initialConversations]
+    );
 
+    // State management
     const [filteredConversations, setFilteredConversations] = useState<Conversation[]>(conversationsArray);
     const [activeConversationId, setActiveConversationId] = useState<number | undefined>();
+    const [activeModal, setActiveModal] = useState<ActiveModalType>(null);
 
+    // Mobile state management
+    const [isMobileSidebarVisible, setIsMobileSidebarVisible] = useState(true);
+
+    // Derived state
     const activeConversation = filteredConversations.find(
         (conv) => conv.id === activeConversationId
     );
 
     const handleSelectConversation = useCallback((id: number) => {
         setActiveConversationId(id);
+        // On mobile, hide sidebar when selecting conversation
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            setIsMobileSidebarVisible(false);
+        }
         // Navigate to show page
         router.get(`/chat/${id}`);
     }, []);
@@ -81,7 +98,6 @@ export default function ChatIndexPage() {
                     throw new Error('Failed to send message');
                 }
 
-                // Message sent successfully - update conversation's last message
                 const data = await response.json();
                 console.log('Message sent:', data);
             } catch (error) {
@@ -91,45 +107,137 @@ export default function ChatIndexPage() {
         [activeConversationId]
     );
 
+    // Close modal callback
+    const closeModal = useCallback(() => {
+        setActiveModal(null);
+    }, []);
+
+    // Open modal callback
+    const openModal = useCallback((modalType: ActiveModalType) => {
+        setActiveModal(modalType);
+    }, []);
+
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex h-screen bg-[#111b21] overflow-hidden"
-        >
-            {/* Sidebar - Hidden on mobile */}
-            <div className="hidden md:flex md:flex-col w-[400px]">
-                <ConversationSidebar
-                    conversations={filteredConversations}
-                    activeConversationId={activeConversationId}
-                    currentUser={currentUser}
-                    onSelectConversation={handleSelectConversation}
-                    onSearchChange={handleSearchChange}
-                />
-            </div>
+        <div className="relative h-screen bg-[#111b21] overflow-hidden">
+            {/* Main Layout Container */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="flex h-screen"
+            >
+                {/* Sidebar - Desktop: always visible, Mobile: hidden when chat selected */}
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key="sidebar"
+                        initial={{ x: -400, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        exit={{ x: -400, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                        className="hidden md:flex md:flex-col md:relative md:z-20 w-[400px]"
+                    >
+                        <ConversationSidebar
+                            conversations={filteredConversations}
+                            activeConversationId={activeConversationId}
+                            currentUser={currentUser}
+                            onSelectConversation={handleSelectConversation}
+                            onSearchChange={handleSearchChange}
+                            onNewGroupClick={() => openModal('groupCreate')}
+                            onOpenProfileSettings={() => openModal('profile')}
+                            onOpenStarredMessages={() => openModal('starred')}
+                        />
+                    </motion.div>
+                </AnimatePresence>
 
-            {/* Chat Window - Desktop only, empty state on mobile */}
-            <div className="hidden md:flex md:flex-col flex-1">
-                <ChatWindow
-                    conversation={activeConversation || null}
-                    currentUser={currentUser}
-                    messages={[]}
-                    isLoading={false}
-                    onSendMessage={handleSendMessage}
-                />
-            </div>
+                {/* Mobile Sidebar Overlay */}
+                <AnimatePresence>
+                    {isMobileSidebarVisible && (
+                        <>
+                            {/* Mobile Sidebar */}
+                            <motion.div
+                                key="mobile-sidebar"
+                                initial={{ x: -400, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                exit={{ x: -400, opacity: 0 }}
+                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                className="md:hidden absolute inset-0 z-30 w-full"
+                            >
+                                <ConversationSidebar
+                                    conversations={filteredConversations}
+                                    activeConversationId={activeConversationId}
+                                    currentUser={currentUser}
+                                    onSelectConversation={handleSelectConversation}
+                                    onSearchChange={handleSearchChange}
+                                    onNewGroupClick={() => openModal('groupCreate')}
+                                    onOpenProfileSettings={() => openModal('profile')}
+                                    onOpenStarredMessages={() => openModal('starred')}
+                                />
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
 
-            {/* Mobile - Show sidebar by default */}
-            <div className="w-full md:hidden">
-                <ConversationSidebar
-                    conversations={filteredConversations}
-                    activeConversationId={activeConversationId}
-                    currentUser={currentUser}
-                    onSelectConversation={handleSelectConversation}
-                    onSearchChange={handleSearchChange}
-                />
-            </div>
-        </motion.div>
+                {/* Chat Window */}
+                <motion.div
+                    key="chat-window"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.4, delay: 0.1 }}
+                    className="hidden md:flex md:flex-col md:flex-1 md:relative md:z-10"
+                >
+                    {activeConversation ? (
+                        <ChatWindow
+                            conversation={activeConversation}
+                            currentUser={currentUser}
+                            messages={[]}
+                            isLoading={false}
+                            onSendMessage={handleSendMessage}
+                        />
+                    ) : (
+                        <WelcomeScreen />
+                    )}
+                </motion.div>
+            </motion.div>
+
+            {/* Global Modal Overlay & Container
+                Z-Index Hierarchy:
+                - 30: Mobile Sidebar
+                - 50: Modal Backdrop (with blur)
+                - 60: Modal Content
+            */}
+            <AnimatePresence>
+                {activeModal && (
+                    <>
+                        {/* Backdrop with blur effect */}
+                        <motion.div
+                            key="modal-backdrop"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            onClick={closeModal}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-md z-50"
+                        />
+
+                        {/* Modal Content Container */}
+                        <motion.div
+                            key="modal-content"
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ duration: 0.3, ease: 'easeOut' }}
+                            className="fixed inset-0 z-60 flex items-center justify-center p-4 pointer-events-none"
+                            onClick={closeModal}
+                        >
+                            {/* Modal content goes here - currently placeholder */}
+                            <div className="pointer-events-auto">
+                                {/* Modal handlers would go here */}
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+        </div>
     );
 }
 

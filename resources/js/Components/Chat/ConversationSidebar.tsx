@@ -1,10 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Search, MoreVertical, MessageSquare, Plus, Star } from 'lucide-react';
+import { Search, MoreVertical, MessageSquare, Plus, Star, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useGlobalSearch } from '@/hooks/useSearch';
 import { ThemeToggle } from '@/Components/ThemeToggle';
-import { StarredMessagesModal } from '@/Components/Chat/StarredMessagesModal';
-import type { Conversation, User } from '@/types/chat';
+import type { Conversation, User as UserType } from '@/types/chat';
 
 export interface ConversationItemProps {
     conversation: Conversation;
@@ -81,10 +80,12 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
 export interface ConversationSidebarProps {
     conversations: Conversation[];
     activeConversationId?: number;
-    currentUser: User;
+    currentUser: UserType;
     onSelectConversation: (id: number) => void;
     onSearchChange: (query: string) => void;
     onNewGroupClick?: () => void;
+    onOpenProfileSettings?: () => void;
+    onOpenStarredMessages?: () => void;
 }
 
 export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
@@ -94,8 +95,9 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
     onSelectConversation,
     onSearchChange,
     onNewGroupClick,
+    onOpenProfileSettings,
+    onOpenStarredMessages,
 }) => {
-    const [showStarredMessages, setShowStarredMessages] = useState(false);
     const { 
         searchQuery, 
         handleSearch, 
@@ -130,18 +132,20 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         <motion.aside
             initial={{ x: -400 }}
             animate={{ x: 0 }}
-            className="w-[400px] flex flex-col border-r border-[#1f2937] bg-[#111b21] h-screen overflow-hidden md:static fixed left-0 top-0 z-40 md:z-0"
+            className="w-[400px] flex flex-col border-r border-[#1f2937] bg-[#111b21] h-screen overflow-hidden"
         >
             {/* Header Section */}
             <motion.header 
                 className="h-[60px] flex items-center justify-between px-4 bg-[#202c33] border-b border-[#1f2937] flex-shrink-0"
                 layout
             >
-                {/* Profile Avatar */}
+                {/* Profile Avatar - Opens Profile Settings */}
                 <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
+                    onClick={onOpenProfileSettings}
                     className="w-10 h-10 rounded-full overflow-hidden transition hover:ring-2 ring-[#005c4b]"
+                    title="Profile settings"
                 >
                     <img 
                         src={currentUser.avatar || `https://ui-avatars.com/api/?name=${currentUser.name}`}
@@ -151,7 +155,11 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 </motion.button>
 
                 {/* Action Icons */}
-                <div className="flex gap-4 text-gray-400">
+                <motion.div 
+                    className="flex gap-4 text-gray-400"
+                    layout
+                >
+                    {/* Plus Icon - New Group */}
                     <motion.button
                         whileHover={{ scale: 1.1, color: '#00d084' }}
                         whileTap={{ scale: 0.95 }}
@@ -161,23 +169,30 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                     >
                         <Plus className="w-5 h-5" />
                     </motion.button>
+
+                    {/* Star Icon - Starred Messages */}
                     <motion.button
                         whileHover={{ scale: 1.1, color: '#fbbf24' }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => setShowStarredMessages(true)}
+                        onClick={onOpenStarredMessages}
                         title="View starred messages"
                         className="transition"
                     >
                         <Star className="w-5 h-5" />
                     </motion.button>
+
+                    {/* Theme Toggle */}
                     <ThemeToggle />
+
+                    {/* More Options */}
                     <motion.button
                         whileHover={{ scale: 1.1, color: '#00d084' }}
+                        whileTap={{ scale: 0.95 }}
                         className="transition"
                     >
                         <MoreVertical className="w-5 h-5" />
                     </motion.button>
-                </div>
+                </motion.div>
             </motion.header>
 
             {/* Search Bar */}
@@ -277,12 +292,6 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                     </motion.div>
                 )}
             </motion.div>
-
-            {/* Starred Messages Modal */}
-            <StarredMessagesModal
-                isOpen={showStarredMessages}
-                onClose={() => setShowStarredMessages(false)}
-            />
         </motion.aside>
     );
 };

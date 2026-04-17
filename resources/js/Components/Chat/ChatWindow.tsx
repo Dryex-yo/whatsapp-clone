@@ -290,7 +290,7 @@ export const ChatWindowCompact: React.FC<ChatWindowProps> = ({
             <motion.div
                 initial={{ x: 400 }}
                 animate={{ x: 0 }}
-                className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#111b21]"
+                className="fixed inset-0 flex flex-col items-center justify-center bg-[#111b21]"
             >
                 <MessageSquare className="w-16 h-16 text-[#005c4b] opacity-30 mb-4" />
                 <p className="text-gray-400">Select a chat to start</p>
@@ -303,7 +303,7 @@ export const ChatWindowCompact: React.FC<ChatWindowProps> = ({
             initial={{ x: 400 }}
             animate={{ x: 0 }}
             exit={{ x: 400 }}
-            className="fixed inset-0 z-50 flex flex-col bg-[#111b21]"
+            className="fixed inset-0 flex flex-col bg-[#111b21]"
         >
             <ChatHeader conversation={conversation} currentUser={currentUser} />
 

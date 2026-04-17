@@ -57,13 +57,13 @@ export const GroupSettingsSidebar: React.FC<GroupSettingsSidebarProps> = ({
         <AnimatePresence>
             {isOpen && (
                 <>
-                    {/* Overlay */}
+                    {/* Overlay - Mobile only */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+                        className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden"
                     />
 
                     {/* Sidebar */}
@@ -72,7 +72,7 @@ export const GroupSettingsSidebar: React.FC<GroupSettingsSidebarProps> = ({
                         animate={{ x: 0 }}
                         exit={{ x: 400 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 120 }}
-                        className="fixed right-0 top-0 bottom-0 w-[350px] bg-[#111b21] border-l border-[#1f2937] z-50 overflow-y-auto md:static md:border-l md:w-[320px]"
+                        className="fixed right-0 top-0 bottom-0 w-[350px] bg-[#111b21] border-l border-[#1f2937] z-60 overflow-y-auto md:static md:border-l md:w-[320px] md:z-0"
                     >
                         {/* Header */}
                         <motion.div

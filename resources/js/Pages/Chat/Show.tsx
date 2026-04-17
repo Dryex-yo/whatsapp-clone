@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePage, router } from '@inertiajs/react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft } from 'lucide-react';
 import { ConversationSidebar } from '@/Components/Chat/ConversationSidebar';
 import { ChatWindow } from '@/Components/Chat/ChatWindow';
 import { SkeletonLoader } from '@/Components/SkeletonLoader';
 import { NewGroupModal } from '@/Components/Chat/NewGroupModal';
 import { GroupSettingsSidebar } from '@/Components/Chat/GroupSettingsSidebar';
+import { StarredMessagesModal } from '@/Components/Chat/StarredMessagesModal';
 import { usePresence } from '@/hooks/usePresence';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useWebNotifications } from '@/hooks/useWebNotifications';
@@ -27,32 +29,48 @@ interface PageProps extends InertiaPageProps {
     };
 }
 
+// Unified modal type for centralized state management
+type ActiveModalType = 'newGroup' | 'groupSettings' | 'starred' | 'profile' | null;
+
 /**
  * Chat Show Page
  * 
  * Displays a specific conversation with full message history
  * Supports pagination, message sending, and real-time updates via presence channels and typing indicators
+ * Features unified modal management with proper z-index hierarchy
  */
 export default function ChatShowPage() {
     const { props } = usePage<PageProps>();
     const { currentUser, conversations: initialConversations, activeConversation, messages: initialMessages } = props;
 
     // Ensure data is always arrays
-    const conversationsArray = Array.isArray(initialConversations) ? initialConversations : [];
-    const messagesArray = Array.isArray(initialMessages) ? initialMessages : [];
+    const conversationsArray = useMemo(
+        () => Array.isArray(initialConversations) ? initialConversations : [],
+        [initialConversations]
+    );
 
+    const messagesArray = useMemo(
+        () => Array.isArray(initialMessages) ? initialMessages : [],
+        [initialMessages]
+    );
+
+    // State management
     const [messages, setMessages] = useState<Message[]>(messagesArray);
     const [isLoading, setIsLoading] = useState(false);
-    const [isInitialLoad, setIsInitialLoad] = useState(true); // Track initial page load
+    const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [isSending, setIsSending] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [currentPage, setCurrentPage] = useState<number>(Number(props.pagination?.current_page) || 1);
     const [hasMoreMessages, setHasMoreMessages] = useState(
         props.pagination ? currentPage < (Number(props.pagination.last_page) || 1) : false
     );
-    const [isNewGroupModalOpen, setIsNewGroupModalOpen] = useState(false);
-    const [isGroupSettingsOpen, setIsGroupSettingsOpen] = useState(false);
     const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+
+    // Unified modal management - only one modal open at a time
+    const [activeModal, setActiveModal] = useState<ActiveModalType>(null);
+
+    // Mobile state management
+    const [isMobileSidebarVisible, setIsMobileSidebarVisible] = useState(true);
 
     // Setup presence tracking for online users
     const { onlineUsers } = usePresence(activeConversation?.id, currentUser);
@@ -73,7 +91,7 @@ export default function ChatShowPage() {
     // Clear unread count when entering a conversation
     useEffect(() => {
         notifications.clearUnreadCount();
-        setIsInitialLoad(false); // Mark initial load complete after component mounts
+        setIsInitialLoad(false);
     }, [activeConversation?.id, notifications]);
 
     // Track last notified message to avoid duplicate notifications
@@ -83,22 +101,18 @@ export default function ChatShowPage() {
     useEffect(() => {
         if (messages.length === 0 || !currentUser) return;
 
-        // Get the last message
         const lastMessage = messages[messages.length - 1];
         
-        // Check if this is a new message (not already notified) and from another user
         if (
             lastMessage && 
             lastMessage.id !== lastNotifiedMessageRef.current &&
             lastMessage.user_id !== currentUser.id
         ) {
-            // Get the sender user from the conversation users
             const sender = conversationsArray
                 .find(conv => conv.id === activeConversation?.id)
                 ?.users?.find((u: any) => u.id === lastMessage.user_id);
             
             if (sender) {
-                // Trigger notification for incoming message
                 notifications.notifyNewMessage(lastMessage, sender);
                 lastNotifiedMessageRef.current = typeof lastMessage.id === 'string' ? parseInt(lastMessage.id) : lastMessage.id;
             }
@@ -113,29 +127,9 @@ export default function ChatShowPage() {
         }
     }, [messages, messagesArray.length]);
 
-    // Setup WebSocket connection for real-time updates (optional)
-    useEffect(() => {
-        if (!activeConversation?.id) return;
-
-        // Example WebSocket setup (with Laravel Reverb)
-        // Uncomment when ready to implement
-        // const channel = Echo.private(`conversation.${activeConversation.id}`)
-        //     .listen('MessageSent', (data: Message) => {
-        //         setMessages(prev => [...prev, data]);
-        //     })
-        //     .listenForWhisper('typing', (data: { user_id: number }) => {
-        //         if (data.user_id !== currentUser.id) {
-        //             setIsTyping(true);
-        //             setTimeout(() => setIsTyping(false), 3000);
-        //         }
-        //     });
-
-        // return () => {
-        //     channel.leave();
-        // };
-    }, [activeConversation?.id, currentUser.id]);
-
     const handleSelectConversation = useCallback((id: number) => {
+        // Close any open modals when switching conversations
+        setActiveModal(null);
         router.get(`/chat/${id}`);
     }, []);
 
@@ -151,24 +145,21 @@ export default function ChatShowPage() {
         async (body: string, file?: File) => {
             if (!activeConversation?.id) return;
             
-            // Check if message has content (body or file)
             if (!body.trim() && !file) return;
 
             setIsSending(true);
             const tempMessageId = generateTempMessageId();
             const formData = new FormData();
             
-            // Encrypt the message body if it's a text message
             let displayBody = body.trim();
             if (body.trim()) {
                 try {
                     const encryptionKey = generateEncryptionKey(currentUser.id, currentUser.email);
                     const encryptedBody = encryptMessage(body.trim(), encryptionKey);
                     
-                    // Send encrypted body instead of plain body
                     formData.append('encrypted_body', encryptedBody);
                     formData.append('is_encrypted', 'true');
-                    formData.append('body', ''); // Keep for backward compatibility
+                    formData.append('body', '');
                 } catch (error) {
                     console.error('Failed to encrypt message:', error);
                     setIsSending(false);
@@ -180,14 +171,12 @@ export default function ChatShowPage() {
                 formData.append('is_encrypted', 'false');
             }
             
-            // Mark message as ephemeral (disappears in 24 hours)
             formData.append('is_ephemeral', 'true');
             
             if (file) {
                 formData.append('file', file);
             }
 
-            // Create optimistic message - show it immediately in the UI
             const optimisticMessage: Message = {
                 id: tempMessageId,
                 conversation_id: activeConversation.id,
@@ -200,7 +189,6 @@ export default function ChatShowPage() {
                 user: currentUser,
             };
 
-            // Add optimistic message to state immediately for instant UI feedback
             setMessages((prev) => [...prev, optimisticMessage]);
 
             try {
@@ -222,7 +210,6 @@ export default function ChatShowPage() {
 
                 const newMessage = await response.json();
 
-                // Replace optimistic message with server response
                 setMessages((prev) => 
                     prev.map((msg) => 
                         msg.id === tempMessageId 
@@ -238,7 +225,6 @@ export default function ChatShowPage() {
             } catch (error) {
                 console.error('Failed to send message:', error);
                 
-                // Update optimistic message to show error state
                 setMessages((prev) =>
                     prev.map((msg) =>
                         msg.id === tempMessageId
@@ -251,7 +237,6 @@ export default function ChatShowPage() {
                             : msg
                     )
                 );
-                // You can add a toast notification here
             } finally {
                 setIsSending(false);
             }
@@ -273,11 +258,9 @@ export default function ChatShowPage() {
 
             const data = await response.json();
             
-            // Prepend older messages (they come chronologically before current messages)
             setMessages((prev) => [...data.messages, ...prev]);
             setCurrentPage(nextPage);
             
-            // Update hasMoreMessages based on pagination response
             if (data.pagination) {
                 setHasMoreMessages(data.pagination.has_more || nextPage < Number(data.pagination.last_page));
             }
@@ -311,7 +294,8 @@ export default function ChatShowPage() {
 
                 const newConversation = await response.json();
                 
-                // Navigate to the new group conversation
+                // Close modal and navigate
+                setActiveModal(null);
                 router.get(`/chat/${newConversation.id}`);
             } catch (error) {
                 console.error('Error creating group:', error);
@@ -353,90 +337,177 @@ export default function ChatShowPage() {
         [activeConversation?.id]
     );
 
+    // Modal management callbacks
+    const openModal = useCallback((modalType: ActiveModalType) => {
+        setActiveModal(modalType);
+    }, []);
+
+    const closeModal = useCallback(() => {
+        setActiveModal(null);
+    }, []);
+
+    // Handle back button on mobile
+    const handleMobileBack = useCallback(() => {
+        setIsMobileSidebarVisible(true);
+    }, []);
+
     return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex h-screen bg-[#111b21] overflow-hidden"
-        >
+        <div className="relative h-screen bg-[#111b21] overflow-hidden">
             {/* Show skeleton loader during initial load from Inertia */}
             {isInitialLoad ? (
                 <SkeletonLoader type="full" />
             ) : (
                 <>
-                    {/* Sidebar - Hidden on mobile */}
-                    <div className="hidden md:flex md:flex-col w-[400px]">
-                        <ConversationSidebar
-                            conversations={conversationsArray}
-                            activeConversationId={activeConversation.id}
-                            currentUser={currentUser}
-                            onSelectConversation={handleSelectConversation}
-                            onSearchChange={() => {}} // Search is now handled by useGlobalSearch hook in sidebar
-                            onNewGroupClick={() => setIsNewGroupModalOpen(true)}
-                        />
-                    </div>
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.3 }}
+                        className="flex h-screen"
+                    >
+                        {/* Sidebar - Desktop: always visible, Mobile: hidden when chat selected */}
+                        <AnimatePresence mode="wait">
+                            {isMobileSidebarVisible && (
+                                <motion.div
+                                    key="desktop-sidebar"
+                                    initial={{ x: -400, opacity: 0 }}
+                                    animate={{ x: 0, opacity: 1 }}
+                                    exit={{ x: -400, opacity: 0 }}
+                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                    className="hidden md:flex md:flex-col md:relative md:z-20 w-[400px]"
+                                >
+                                    <ConversationSidebar
+                                        conversations={conversationsArray}
+                                        activeConversationId={activeConversation.id}
+                                        currentUser={currentUser}
+                                        onSelectConversation={handleSelectConversation}
+                                        onSearchChange={() => {}}
+                                        onNewGroupClick={() => openModal('newGroup')}
+                                        onOpenProfileSettings={() => openModal('profile')}
+                                        onOpenStarredMessages={() => openModal('starred')}
+                                    />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
-                    {/* Chat Window - Main area */}
-                    <div className="flex-1 flex flex-col md:min-w-0">
-                        <ChatWindow
-                            conversation={activeConversation}
-                            currentUser={currentUser}
-                            messages={messages}
-                            isLoading={isSending}
-                            onSendMessage={handleSendMessage}
-                            onTypingStart={broadcastTypingStart}
-                            onTypingStop={broadcastTypingStop}
-                            isTyping={isTyping}
-                            typingUsers={typingUsers}
-                            onlineUsers={onlineUsers}
-                            onLoadMoreMessages={handleLoadMore}
-                            hasMoreMessages={hasMoreMessages}
-                            canNotify={notifications.canNotify}
-                            isSoundEnabled={notifications.isSoundEnabled}
-                            onToggleSound={notifications.toggleSoundNotification}
-                            onRequestNotificationPermission={notifications.requestNotificationPermission}
-                        />
-                    </div>
-
-                    {/* Mobile - Show back to sidebar button */}
-                    <div className="md:hidden absolute top-4 left-4 z-10">
-                        <motion.button
-                            whileHover={{ scale: 1.1 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => router.get('/chat')}
-                            className="p-2 hover:bg-[#202c33] rounded-full text-white"
-                            title="Back to conversations"
+                        {/* Chat Window - Main area with back button for mobile */}
+                        <motion.div
+                            key="chat-window"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ duration: 0.4, delay: 0.1 }}
+                            className="flex-1 flex flex-col md:relative md:z-10 relative"
                         >
-                            ← Back
-                        </motion.button>
-                    </div>
+                            {/* Mobile Back Button */}
+                            {!isMobileSidebarVisible && (
+                                <motion.button
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={handleMobileBack}
+                                    className="md:hidden absolute top-4 left-4 z-40 p-2 hover:bg-[#202c33] rounded-full text-gray-300 transition-colors"
+                                    title="Back to conversations"
+                                >
+                                    <ChevronLeft className="w-6 h-6" />
+                                </motion.button>
+                            )}
 
-                    {/* New Group Modal */}
-                    <NewGroupModal
-                        isOpen={isNewGroupModalOpen}
-                        onClose={() => setIsNewGroupModalOpen(false)}
-                        onCreateGroup={handleCreateGroup}
-                        availableUsers={conversationsArray
-                            .flatMap(c => Array.isArray(c.users) ? c.users : [])
-                            .filter((user, idx, arr) => arr.findIndex(u => u.id === user.id) === idx)
-                            .filter(u => u.id !== currentUser.id)}
-                        currentUser={currentUser}
-                        isLoading={isCreatingGroup}
-                    />
+                            <ChatWindow
+                                conversation={activeConversation}
+                                currentUser={currentUser}
+                                messages={messages}
+                                isLoading={isSending}
+                                onSendMessage={handleSendMessage}
+                                onTypingStart={broadcastTypingStart}
+                                onTypingStop={broadcastTypingStop}
+                                isTyping={isTyping}
+                                typingUsers={typingUsers}
+                                onlineUsers={onlineUsers}
+                                onLoadMoreMessages={handleLoadMore}
+                                hasMoreMessages={hasMoreMessages}
+                                canNotify={notifications.canNotify}
+                                isSoundEnabled={notifications.isSoundEnabled}
+                                onToggleSound={notifications.toggleSoundNotification}
+                                onRequestNotificationPermission={notifications.requestNotificationPermission}
+                            />
+                        </motion.div>
+                    </motion.div>
 
-                    {/* Group Settings Sidebar */}
-                    {activeConversation?.is_group && (
-                        <GroupSettingsSidebar
-                            isOpen={isGroupSettingsOpen}
-                            onClose={() => setIsGroupSettingsOpen(false)}
-                            conversation={activeConversation}
-                            currentUser={currentUser}
-                            onRemoveMember={handleRemoveMember}
-                            onAddMembers={() => setIsNewGroupModalOpen(true)}
-                        />
-                    )}
+                    {/* Global Modal System with Z-Index Hierarchy
+                        Z-Index Hierarchy:
+                        - 50: Modal Backdrop (with blur effect)
+                        - 60: Modal Content
+                        Ensures only one modal is open at a time
+                    */}
+                    <AnimatePresence>
+                        {activeModal && (
+                            <>
+                                {/* Global Backdrop with blur effect */}
+                                <motion.div
+                                    key="modal-backdrop"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    onClick={closeModal}
+                                    className="fixed inset-0 bg-black/40 backdrop-blur-md z-50"
+                                />
+
+                                {/* Modal Content */}
+                                <motion.div
+                                    key="modal-wrapper"
+                                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                                    className="fixed inset-0 z-60 flex items-center justify-center p-4 pointer-events-none"
+                                >
+                                    {/* New Group Modal */}
+                                    {activeModal === 'newGroup' && (
+                                        <div className="pointer-events-auto">
+                                            <NewGroupModal
+                                                isOpen={true}
+                                                onClose={closeModal}
+                                                onCreateGroup={handleCreateGroup}
+                                                availableUsers={conversationsArray
+                                                    .flatMap(c => Array.isArray(c.users) ? c.users : [])
+                                                    .filter((user, idx, arr) => arr.findIndex(u => u.id === user.id) === idx)
+                                                    .filter(u => u.id !== currentUser.id)}
+                                                currentUser={currentUser}
+                                                isLoading={isCreatingGroup}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Starred Messages Modal */}
+                                    {activeModal === 'starred' && (
+                                        <div className="pointer-events-auto">
+                                            <StarredMessagesModal
+                                                isOpen={true}
+                                                onClose={closeModal}
+                                            />
+                                        </div>
+                                    )}
+                                </motion.div>
+                            </>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Group Settings Sidebar - Desktop only, uses separate z-index */}
+                    <AnimatePresence>
+                        {activeConversation?.is_group && activeModal === 'groupSettings' && (
+                            <GroupSettingsSidebar
+                                isOpen={true}
+                                onClose={closeModal}
+                                conversation={activeConversation}
+                                currentUser={currentUser}
+                                onRemoveMember={handleRemoveMember}
+                                onAddMembers={() => openModal('newGroup')}
+                            />
+                        )}
+                    </AnimatePresence>
                 </>
             )}
-        </motion.div>
+        </div>
     );
 }
