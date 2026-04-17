@@ -1,32 +1,32 @@
+import React from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { PageProps } from '@/types';
 import { Head } from '@inertiajs/react';
 import DeleteUserForm from './Partials/DeleteUserForm';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
-import UpdateProfileSettingsForm from './Partials/UpdateProfileSettingsForm';
+import { User } from '@/types';
 
-export default function Edit({
-    mustVerifyEmail,
-    status,
-}: PageProps<{ mustVerifyEmail: boolean; status?: string }>) {
+interface Props {
+    auth: { user: User };
+    mustVerifyEmail: boolean;
+    status?: string;
+}
+
+export default function Edit({ auth, mustVerifyEmail, status }: Props) {
     return (
         <AuthenticatedLayout
             header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
+                <h2 className="text-xl font-semibold leading-tight text-[#e9edef]">
                     Profile Settings
                 </h2>
             }
         >
             <Head title="Profile Settings" />
 
-            <div className="py-12">
+            <div className="py-12 bg-[#0b141a] min-h-screen">
                 <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <UpdateProfileSettingsForm className="max-w-3xl" />
-                    </div>
-
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
+                    {/* Bagian Update Informasi Profil */}
+                    <div className="bg-[#111b21] p-4 shadow sm:rounded-lg sm:p-8 border border-gray-800">
                         <UpdateProfileInformationForm
                             mustVerifyEmail={mustVerifyEmail}
                             status={status}
@@ -34,11 +34,13 @@ export default function Edit({
                         />
                     </div>
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
+                    {/* Bagian Update Password */}
+                    <div className="bg-[#111b21] p-4 shadow sm:rounded-lg sm:p-8 border border-gray-800">
                         <UpdatePasswordForm className="max-w-xl" />
                     </div>
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
+                    {/* Bagian Hapus Akun */}
+                    <div className="bg-[#111b21] p-4 shadow sm:rounded-lg sm:p-8 border border-gray-800">
                         <DeleteUserForm className="max-w-xl" />
                     </div>
                 </div>

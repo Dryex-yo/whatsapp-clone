@@ -878,5 +878,79 @@ class ChatController extends Controller
             'user_id' => $user->id,
         ], 200);
     }
+
+    /**
+     * Get all registered users (contacts) for new chat modal.
+     * Excludes the current user and users they have blocked.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function getUsers(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $blockedUserIds = $user->blockedUsers()->pluck('blocked_user_id')->toArray();
+
+        $users = User::where('id', '!=', $user->id)
+            ->whereNotIn('id', $blockedUserIds)
+            ->select('id', 'name', 'email', 'avatar', 'bio', 'phone')
+            ->orderBy('name', 'asc')
+            ->get();
+
+        return response()->json([
+            'users' => UserResource::collection($users),
+            'total' => $users->count(),
+        ], 200);
+    }
+
+    /**
+     * Start a direct conversation with a user.
+     * If conversation already exists, return its ID.
+     * If not, create a new one.
+     *
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function startDirectConversation(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id|different:' . $user->id,
+        ]);
+
+        $otherUserId = $validated['user_id'];
+        $userId = $user->id;
+
+        // Check if a direct conversation already exists between these two users
+        $existingConversation = Conversation::where('is_group', false)
+            ->whereHas('users', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
+            ->whereHas('users', function ($query) use ($otherUserId) {
+                $query->where('user_id', $otherUserId);
+            })
+            ->first();
+
+        if ($existingConversation) {
+            return response()->json([
+                'conversation_id' => $existingConversation->id,
+                'created' => false,
+            ], 200);
+        }
+
+        // Create new direct conversation
+        $conversation = Conversation::create([
+            'is_group' => false,
+            'name' => null,
+        ]);
+
+        // Attach both users to the conversation
+        $conversation->users()->attach([$user->id, $otherUserId]);
+
+        return response()->json([
+            'conversation_id' => $conversation->id,
+            'created' => true,
+        ], 201);
+    }
 }
 

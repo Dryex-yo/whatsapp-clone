@@ -59,6 +59,11 @@ Route::middleware('auth:sanctum')->group(function () {
      * Block Management Routes
      * Block, unblock, and manage blocked users
      */
+    Route::get('/users', [ChatController::class, 'getUsers'])
+        ->name('users.list');
+
+    Route::post('/conversations/start', [ChatController::class, 'startDirectConversation'])
+        ->name('conversations.start');
     Route::post('/users/{user}/block', [ChatController::class, 'blockUser'])
         ->name('users.block');
 

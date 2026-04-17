@@ -6,6 +6,8 @@ import { ChatWindow } from '@/Components/Chat/ChatWindow';
 import { StarredMessagesModal } from '@/Components/Chat/StarredMessagesModal';
 import { ProfileSettingsModal } from '@/Components/Chat/ProfileSettingsModal';
 import { NewGroupModal } from '@/Components/Chat/NewGroupModal';
+import { NewChatModal } from '@/Components/Chat/NewChatModal';
+import { ProfileSection } from '@/Components/Chat/ProfileSection';
 import { EmptyConversationState } from '@/Components/Chat/EmptyConversationState';
 import { NoConversationsState } from '@/Components/Chat/NoConversationsState';
 import type { Conversation, Message, User } from '@/types/chat';
@@ -18,7 +20,7 @@ interface PageProps extends InertiaPageProps {
 }
 
 // Modal types for unified state management
-type ActiveModalType = 'starred' | 'profile' | 'groupCreate' | null;
+type ActiveModalType = 'starred' | 'profile' | 'groupCreate' | 'newChat' | null;
 
 /**
  * Chat Index Page
@@ -41,6 +43,7 @@ export default function ChatIndexPage() {
     const [filteredConversations, setFilteredConversations] = useState<Conversation[]>(conversationsArray);
     const [activeConversationId, setActiveConversationId] = useState<number | undefined>();
     const [activeModal, setActiveModal] = useState<ActiveModalType>(null);
+    const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
 
     // Mobile state management
     const [isMobileSidebarVisible, setIsMobileSidebarVisible] = useState(true);
@@ -107,6 +110,15 @@ export default function ChatIndexPage() {
         setActiveModal(modalType);
     }, []);
 
+    // Profile view handlers
+    const handleOpenProfile = useCallback(() => {
+        setIsProfileOpen(true);
+    }, []);
+
+    const handleCloseProfile = useCallback(() => {
+        setIsProfileOpen(false);
+    }, []);
+
     return (
         <div className="fixed inset-0 w-screen h-screen bg-[#0b141a] overflow-hidden">
             {/* Main Layout Container - Base layer */}
@@ -132,10 +144,19 @@ export default function ChatIndexPage() {
                             currentUser={currentUser}
                             onSelectConversation={handleSelectConversation}
                             onSearchChange={handleSearchChange}
-                            onNewGroupClick={() => openModal('groupCreate')}
-                            onOpenProfileSettings={() => openModal('profile')}
+                            onNewGroupClick={() => openModal('newChat')}
+                            onOpenProfileSettings={handleOpenProfile}
                             onOpenStarredMessages={() => openModal('starred')}
                         />
+                        {/* Profile Section Overlay */}
+                        <AnimatePresence>
+                            {isProfileOpen && (
+                                <ProfileSection
+                                    user={currentUser}
+                                    onBack={handleCloseProfile}
+                                />
+                            )}
+                        </AnimatePresence>
                     </motion.div>
                 </AnimatePresence>
 
@@ -158,10 +179,19 @@ export default function ChatIndexPage() {
                                     currentUser={currentUser}
                                     onSelectConversation={handleSelectConversation}
                                     onSearchChange={handleSearchChange}
-                                    onNewGroupClick={() => openModal('groupCreate')}
-                                    onOpenProfileSettings={() => openModal('profile')}
+                                    onNewGroupClick={() => openModal('newChat')}
+                                    onOpenProfileSettings={handleOpenProfile}
                                     onOpenStarredMessages={() => openModal('starred')}
                                 />
+                                {/* Profile Section Overlay - Mobile */}
+                                <AnimatePresence>
+                                    {isProfileOpen && (
+                                        <ProfileSection
+                                            user={currentUser}
+                                            onBack={handleCloseProfile}
+                                        />
+                                    )}
+                                </AnimatePresence>
                             </motion.div>
                         </>
                     )}
@@ -266,6 +296,12 @@ export default function ChatIndexPage() {
                     </>
                 )}
             </AnimatePresence>
+
+            {/* New Chat Modal - Separate from global modal system */}
+            <NewChatModal
+                isOpen={activeModal === 'newChat'}
+                onClose={closeModal}
+            />
         </div>
     );
 }
