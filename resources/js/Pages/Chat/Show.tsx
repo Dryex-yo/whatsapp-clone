@@ -8,6 +8,7 @@ import { SkeletonLoader } from '@/Components/SkeletonLoader';
 import { NewGroupModal } from '@/Components/Chat/NewGroupModal';
 import { GroupSettingsSidebar } from '@/Components/Chat/GroupSettingsSidebar';
 import { StarredMessagesModal } from '@/Components/Chat/StarredMessagesModal';
+import { ProfileSettingsModal } from '@/Components/Chat/ProfileSettingsModal';
 import { usePresence } from '@/hooks/usePresence';
 import { useTypingIndicator } from '@/hooks/useTypingIndicator';
 import { useWebNotifications } from '@/hooks/useWebNotifications';
@@ -142,13 +143,11 @@ export default function ChatShowPage() {
     }, []);
 
     const handleSendMessage = useCallback(
-        async (body: string, file?: File) => {
+        async (body: string, file?: File): Promise<void> => {
             if (!activeConversation?.id) return;
             
             if (!body.trim() && !file) return;
 
-            setIsSending(true);
-            const tempMessageId = generateTempMessageId();
             const formData = new FormData();
             
             let displayBody = body.trim();
@@ -162,7 +161,6 @@ export default function ChatShowPage() {
                     formData.append('body', '');
                 } catch (error) {
                     console.error('Failed to encrypt message:', error);
-                    setIsSending(false);
                     alert('Failed to encrypt message. Please try again.');
                     return;
                 }
@@ -177,69 +175,12 @@ export default function ChatShowPage() {
                 formData.append('file', file);
             }
 
-            const optimisticMessage: Message = {
-                id: tempMessageId,
-                conversation_id: activeConversation.id,
-                user_id: currentUser.id,
-                body: displayBody,
-                type: 'text',
-                status: 'pending',
-                created_at: new Date().toISOString(),
-                is_optimistic: true,
-                user: currentUser,
-            };
-
-            setMessages((prev) => [...prev, optimisticMessage]);
-
-            try {
-                const response = await fetch(
-                    `/api/conversations/${activeConversation.id}/messages`,
-                    {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                        body: formData,
-                    }
-                );
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Failed to send message');
-                }
-
-                const newMessage = await response.json();
-
-                setMessages((prev) => 
-                    prev.map((msg) => 
-                        msg.id === tempMessageId 
-                            ? { 
-                                ...newMessage, 
-                                is_optimistic: false, 
-                                status: 'sent',
-                                server_id: newMessage.id,
-                              }
-                            : msg
-                    )
-                );
-            } catch (error) {
-                console.error('Failed to send message:', error);
-                
-                setMessages((prev) =>
-                    prev.map((msg) =>
-                        msg.id === tempMessageId
-                            ? {
-                                ...msg,
-                                status: 'sent',
-                                is_optimistic: false,
-                                error_message: error instanceof Error ? error.message : 'Failed to send message',
-                              }
-                            : msg
-                    )
-                );
-            } finally {
-                setIsSending(false);
-            }
+            // Use Inertia router for CSRF-protected message posting
+            return new Promise((resolve) => {
+                router.post(`/chat/${activeConversation.id}/messages`, formData, {
+                    onFinish: () => resolve(),
+                });
+            });
         },
         [activeConversation?.id, currentUser]
     );
@@ -272,67 +213,33 @@ export default function ChatShowPage() {
     }, [currentPage, hasMoreMessages, isLoading, activeConversation.id]);
 
     const handleCreateGroup = useCallback(
-        async (groupName: string, userIds: number[]) => {
-            setIsCreatingGroup(true);
-            try {
-                const response = await fetch('/api/groups', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
+        async (groupName: string, userIds: number[]): Promise<void> => {
+            // Use Inertia router for CSRF-protected group creation
+            return new Promise((resolve) => {
+                router.post('/groups', {
+                    name: groupName,
+                    user_ids: userIds,
+                }, {
+                    onFinish: () => {
+                        setActiveModal(null);
+                        resolve();
                     },
-                    body: JSON.stringify({
-                        name: groupName,
-                        user_ids: userIds,
-                    }),
                 });
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Failed to create group');
-                }
-
-                const newConversation = await response.json();
-                
-                // Close modal and navigate
-                setActiveModal(null);
-                router.get(`/chat/${newConversation.id}`);
-            } catch (error) {
-                console.error('Error creating group:', error);
-                alert(error instanceof Error ? error.message : 'Failed to create group');
-                throw error;
-            } finally {
-                setIsCreatingGroup(false);
-            }
+            });
         },
         []
     );
 
     const handleRemoveMember = useCallback(
-        async (userId: number) => {
+        async (userId: number): Promise<void> => {
             if (!activeConversation?.id) return;
 
-            try {
-                const response = await fetch(
-                    `/api/conversations/${activeConversation.id}/members/${userId}`,
-                    {
-                        method: 'DELETE',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                    }
-                );
-
-                if (!response.ok) {
-                    throw new Error('Failed to remove member');
-                }
-
-                alert('Member removed successfully');
-            } catch (error) {
-                console.error('Error removing member:', error);
-                alert('Failed to remove member');
-                throw error;
-            }
+            // Use Inertia router for CSRF-protected member removal
+            return new Promise((resolve) => {
+                router.delete(`/chat/${activeConversation.id}/members/${userId}`, {
+                    onFinish: () => resolve(),
+                });
+            });
         },
         [activeConversation?.id]
     );
@@ -373,7 +280,7 @@ export default function ChatShowPage() {
                                     animate={{ x: 0, opacity: 1 }}
                                     exit={{ x: -400, opacity: 0 }}
                                     transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                    className="hidden md:flex md:flex-col md:relative md:z-20 w-[400px]"
+                                    className="hidden md:flex md:flex-col md:relative md:z-10 w-[400px]"
                                 >
                                     <ConversationSidebar
                                         conversations={conversationsArray}
@@ -433,16 +340,14 @@ export default function ChatShowPage() {
                         </motion.div>
                     </motion.div>
 
-                    {/* Global Modal System with Z-Index Hierarchy
-                        Z-Index Hierarchy:
-                        - 50: Modal Backdrop (with blur effect)
-                        - 60: Modal Content
-                        Ensures only one modal is open at a time
+                    {/* Global Modal System - Fixed overlay at z-[999]
+                        Ensures modals always appear on top of all content
+                        Uses backdrop-blur-md with dark semi-transparent background
                     */}
                     <AnimatePresence>
                         {activeModal && (
                             <>
-                                {/* Global Backdrop with blur effect */}
+                                {/* Backdrop - Dismissible overlay */}
                                 <motion.div
                                     key="modal-backdrop"
                                     initial={{ opacity: 0 }}
@@ -450,43 +355,54 @@ export default function ChatShowPage() {
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.2 }}
                                     onClick={closeModal}
-                                    className="fixed inset-0 bg-black/40 backdrop-blur-md z-50"
+                                    className="fixed inset-0 bg-black/60 backdrop-blur-md z-[998]"
+                                    aria-hidden="true"
                                 />
 
-                                {/* Modal Content */}
+                                {/* Modal Content Container - Perfectly centered */}
                                 <motion.div
-                                    key="modal-wrapper"
+                                    key="modal-content"
                                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                                     animate={{ opacity: 1, scale: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
                                     transition={{ duration: 0.3, ease: 'easeOut' }}
-                                    className="fixed inset-0 z-60 flex items-center justify-center p-4 pointer-events-none"
+                                    className="fixed inset-0 z-[999] flex items-center justify-center p-4"
+                                    onClick={(e) => {
+                                        // Only close if clicking the container itself, not the modal
+                                        if (e.target === e.currentTarget) {
+                                            closeModal();
+                                        }
+                                    }}
                                 >
                                     {/* New Group Modal */}
                                     {activeModal === 'newGroup' && (
-                                        <div className="pointer-events-auto">
-                                            <NewGroupModal
-                                                isOpen={true}
-                                                onClose={closeModal}
-                                                onCreateGroup={handleCreateGroup}
-                                                availableUsers={conversationsArray
-                                                    .flatMap(c => Array.isArray(c.users) ? c.users : [])
-                                                    .filter((user, idx, arr) => arr.findIndex(u => u.id === user.id) === idx)
-                                                    .filter(u => u.id !== currentUser.id)}
-                                                currentUser={currentUser}
-                                                isLoading={isCreatingGroup}
-                                            />
-                                        </div>
+                                        <NewGroupModal
+                                            isOpen={true}
+                                            onClose={closeModal}
+                                            onCreateGroup={handleCreateGroup}
+                                            availableUsers={conversationsArray
+                                                .flatMap(c => Array.isArray(c.users) ? c.users : [])
+                                                .filter((user, idx, arr) => arr.findIndex(u => u.id === user.id) === idx)
+                                                .filter(u => u.id !== currentUser.id)}
+                                            currentUser={currentUser}
+                                        />
                                     )}
 
                                     {/* Starred Messages Modal */}
                                     {activeModal === 'starred' && (
-                                        <div className="pointer-events-auto">
-                                            <StarredMessagesModal
-                                                isOpen={true}
-                                                onClose={closeModal}
-                                            />
-                                        </div>
+                                        <StarredMessagesModal
+                                            isOpen={true}
+                                            onClose={closeModal}
+                                        />
+                                    )}
+
+                                    {/* Profile Settings Modal */}
+                                    {activeModal === 'profile' && (
+                                        <ProfileSettingsModal
+                                            isOpen={true}
+                                            onClose={closeModal}
+                                            user={currentUser}
+                                        />
                                     )}
                                 </motion.div>
                             </>
