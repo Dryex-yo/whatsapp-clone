@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { Search, MoreVertical, MessageSquare, Plus, Star, User } from 'lucide-react';
+import { Search, MessageSquare, Plus, Star, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useGlobalSearch } from '@/hooks/useSearch';
 import { ThemeToggle } from '@/Components/ThemeToggle';
+import { SidebarDropdown } from '@/Components/Chat/SidebarDropdown';
 import type { Conversation, User as UserType } from '@/types/chat';
 
 export interface ConversationItemProps {
@@ -184,14 +185,12 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                     {/* Theme Toggle */}
                     <ThemeToggle />
 
-                    {/* More Options */}
-                    <motion.button
-                        whileHover={{ scale: 1.1, color: '#00d084' }}
-                        whileTap={{ scale: 0.95 }}
-                        className="transition"
-                    >
-                        <MoreVertical className="w-5 h-5" />
-                    </motion.button>
+                    {/* Sidebar Dropdown Menu */}
+                    <SidebarDropdown
+                        onNewGroupClick={onNewGroupClick}
+                        onOpenStarredMessages={onOpenStarredMessages}
+                        onOpenProfileSettings={onOpenProfileSettings}
+                    />
                 </motion.div>
             </motion.header>
 
