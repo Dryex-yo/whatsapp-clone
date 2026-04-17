@@ -39,13 +39,16 @@ function getReconnectDelay(attempts: number): number {
 // Create the Echo instance
 const echo: any = new Echo({
     broadcaster: 'socket.io',
-    host: window.location.hostname + ':8000',
+    host: window.location.hostname,
+    port: 8000,
     secure: window.location.protocol === 'https:',
     rejectUnauthorized: false,
     reconnection: true,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 5000,
     reconnectionAttempts: 5,
+    path: '/socket.io',
+    transports: ['websocket', 'polling'],
     auth: {
         headers: {
             Authorization: `Bearer ${
@@ -53,6 +56,8 @@ const echo: any = new Echo({
                     .querySelector('meta[name="csrf-token"]')
                     ?.getAttribute('content') || ''
             }`,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
         },
     },
 });

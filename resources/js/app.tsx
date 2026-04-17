@@ -8,6 +8,11 @@ import { ThemeProvider, Theme } from './contexts/ThemeProvider';
 import { NetworkProvider } from './contexts/NetworkContext';
 import ErrorBoundary from './Components/ErrorBoundary';
 import NetworkBanner from './Components/NetworkBanner';
+import { configureEcho } from '@laravel/echo-react';
+
+configureEcho({
+    broadcaster: 'reverb',
+});
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
