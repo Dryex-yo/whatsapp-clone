@@ -5,6 +5,7 @@ import { ConversationSidebar } from '@/Components/Chat/ConversationSidebar';
 import { ChatWindow } from '@/Components/Chat/ChatWindow';
 import { NavigationRail } from '@/Components/Chat/NavigationRail';
 import { WalletSection } from '@/Components/Chat/WalletSection';
+import WelcomeScreen from '@/Components/Chat/WelcomeScreen';
 import { StarredMessagesModal } from '@/Components/Chat/StarredMessagesModal';
 import { ProfileSettingsModal } from '@/Components/Chat/ProfileSettingsModal';
 import { NewGroupModal } from '@/Components/Chat/NewGroupModal';
@@ -253,7 +254,7 @@ export default function ChatIndexPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.4, delay: 0.1 }}
-                    className="hidden md:flex md:flex-col md:flex-1 md:relative md:z-5"
+                    className="hidden md:flex md:flex-col md:flex-1 md:relative md:z-5 bg-[#0b141a]"
                 >
                     {conversationsArray.length === 0 ? (
                         <NoConversationsState onCreateGroup={() => openModal('groupCreate')} />
@@ -266,7 +267,7 @@ export default function ChatIndexPage() {
                             onSendMessage={handleSendMessage}
                         />
                     ) : (
-                        <EmptyConversationState />
+                        <WelcomeScreen />
                     )}
                 </motion.div>
             </motion.div>
