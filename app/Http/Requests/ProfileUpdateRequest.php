@@ -17,8 +17,9 @@ class ProfileUpdateRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => [
+                'sometimes',
                 'required',
                 'string',
                 'lowercase',
@@ -28,7 +29,7 @@ class ProfileUpdateRequest extends FormRequest
             ],
             'bio' => ['nullable', 'string', 'max:500'],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:5120'],
-            'last_seen_privacy' => ['required', 'string', 'in:everyone,contacts,nobody'],
+            'last_seen_privacy' => ['sometimes', 'required', 'string', 'in:everyone,contacts,nobody'],
         ];
     }
 }

@@ -3,20 +3,11 @@
 namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
-use Intervention\Image\ImageManager;
-use Intervention\Image\Drivers\GdDriver;
 
 class ImageCompressionService
 {
-    protected ImageManager $imageManager;
-
-    public function __construct()
-    {
-        $this->imageManager = new ImageManager(new GdDriver());
-    }
-
     /**
-     * Compress and optimize an image file
+     * Compress and optimize an image file using native GD library
      *
      * @param UploadedFile $file The image file to compress
      * @param int $maxWidth Maximum width for the image
@@ -31,12 +22,37 @@ class ImageCompressionService
         int $quality = 85
     ): UploadedFile {
         try {
-            // Read the image
-            $image = $this->imageManager->read($file->getPathname());
+            // Get image info
+            $imageInfo = @getimagesize($file->getPathname());
+            if (!$imageInfo) {
+                throw new \Exception('Invalid image file');
+            }
 
-            // Get original dimensions
-            $originalWidth = $image->width();
-            $originalHeight = $image->height();
+            $originalWidth = $imageInfo[0];
+            $originalHeight = $imageInfo[1];
+            $mimeType = $imageInfo['mime'];
+
+            // Load the image based on type
+            switch ($mimeType) {
+                case 'image/jpeg':
+                    $image = imagecreatefromjpeg($file->getPathname());
+                    break;
+                case 'image/png':
+                    $image = imagecreatefrompng($file->getPathname());
+                    break;
+                case 'image/gif':
+                    $image = imagecreatefromgif($file->getPathname());
+                    break;
+                case 'image/webp':
+                    $image = imagecreatefromwebp($file->getPathname());
+                    break;
+                default:
+                    throw new \Exception('Unsupported image format');
+            }
+
+            if (!$image) {
+                throw new \Exception('Failed to load image');
+            }
 
             // Calculate new dimensions while maintaining aspect ratio
             $ratio = min($maxWidth / $originalWidth, $maxHeight / $originalHeight, 1);
@@ -45,15 +61,27 @@ class ImageCompressionService
                 $newWidth = (int)($originalWidth * $ratio);
                 $newHeight = (int)($originalHeight * $ratio);
 
-                $image = $image->scale($newWidth, $newHeight);
-            }
+                $resized = imagecreatetruecolor($newWidth, $newHeight);
+                
+                // Handle transparency for PNG
+                if ($mimeType === 'image/png') {
+                    imagealphablending($resized, false);
+                    imagesavealpha($resized, true);
+                    $transparent = imagecolorallocatealpha($resized, 255, 255, 255, 127);
+                    imagefilledrectangle($resized, 0, 0, $newWidth, $newHeight, $transparent);
+                }
 
-            // Convert to JPEG for better compression
-            $compressed = $image->toJpeg($quality);
+                imagecopyresampled($resized, $image, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
+                imagedestroy($image);
+                $image = $resized;
+            }
 
             // Create a temporary file
             $tempPath = tempnam(sys_get_temp_dir(), 'img_');
-            file_put_contents($tempPath, $compressed);
+            
+            // Save as JPEG with quality
+            imagejpeg($image, $tempPath, $quality);
+            imagedestroy($image);
 
             // Create a new UploadedFile from the compressed image
             $compressedFile = new UploadedFile(

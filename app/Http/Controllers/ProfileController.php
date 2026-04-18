@@ -60,6 +60,11 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
+        // Return Inertia response for React apps
+        if ($request->wantsJson() || $request->isXmlHttpRequest()) {
+            return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        }
+
         return Redirect::route('profile.edit');
     }
 

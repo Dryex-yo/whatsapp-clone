@@ -3,6 +3,7 @@ import { usePage, router } from '@inertiajs/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ConversationSidebar } from '@/Components/Chat/ConversationSidebar';
 import { ChatWindow } from '@/Components/Chat/ChatWindow';
+import { NavigationRail } from '@/Components/Chat/NavigationRail';
 import { StarredMessagesModal } from '@/Components/Chat/StarredMessagesModal';
 import { ProfileSettingsModal } from '@/Components/Chat/ProfileSettingsModal';
 import { NewGroupModal } from '@/Components/Chat/NewGroupModal';
@@ -44,6 +45,7 @@ export default function ChatIndexPage() {
     const [activeConversationId, setActiveConversationId] = useState<number | undefined>();
     const [activeModal, setActiveModal] = useState<ActiveModalType>(null);
     const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
+    const [activeTab, setActiveTab] = useState<'chats' | 'calls' | 'status' | 'communities'>('chats');
 
     // Mobile state management
     const [isMobileSidebarVisible, setIsMobileSidebarVisible] = useState(true);
@@ -121,14 +123,24 @@ export default function ChatIndexPage() {
 
     return (
         <div className="fixed inset-0 w-screen h-screen bg-[#0b141a] overflow-hidden">
-            {/* Main Layout Container - Base layer */}
+            {/* Main Layout Container - Base layer with Navigation Rail */}
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
                 className="flex h-screen w-screen"
             >
-                {/* Sidebar - Desktop: always visible, Mobile: hidden when chat selected */}
+                {/* Navigation Rail - Always visible (64px width) */}
+                <NavigationRail
+                    activeTab={activeTab}
+                    onTabChange={setActiveTab}
+                    userAvatar={currentUser.avatar}
+                    userName={currentUser.name}
+                    onProfileClick={handleOpenProfile}
+                    onStarredClick={() => openModal('starred')}
+                />
+
+                {/* Sidebar - Desktop: always visible (350-400px), Mobile: hidden when chat selected */}
                 <AnimatePresence mode="wait">
                     <motion.div
                         key="sidebar"
@@ -197,7 +209,7 @@ export default function ChatIndexPage() {
                     )}
                 </AnimatePresence>
 
-                {/* Chat Window - Desktop: visible, Mobile: hidden by default */}
+                {/* Chat Window - Desktop: visible (flexible), Mobile: hidden by default */}
                 <motion.div
                     key="chat-window"
                     initial={{ opacity: 0 }}
