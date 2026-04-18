@@ -7,15 +7,17 @@ import {
     Users,
     Sparkles,
     Star,
+    Wallet,
 } from 'lucide-react';
 
 interface NavigationRailProps {
-    activeTab: 'chats' | 'calls' | 'status' | 'communities';
-    onTabChange: (tab: 'chats' | 'calls' | 'status' | 'communities') => void;
+    activeTab: 'chats' | 'calls' | 'status' | 'communities' | 'wallet';
+    onTabChange: (tab: 'chats' | 'calls' | 'status' | 'communities' | 'wallet') => void;
     userAvatar?: string;
     userName?: string;
     onProfileClick?: () => void;
     onStarredClick?: () => void;
+    onWalletClick?: () => void;
 }
 
 export const NavigationRail: React.FC<NavigationRailProps> = ({
@@ -25,6 +27,7 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
     userName,
     onProfileClick,
     onStarredClick,
+    onWalletClick,
 }) => {
     const topIcons = [
         {
@@ -118,7 +121,52 @@ export const NavigationRail: React.FC<NavigationRailProps> = ({
 
             {/* Bottom Navigation Items */}
             <div className="flex flex-col gap-3 items-center">
-                {/* Meta AI Icon - Enhanced */}
+                {/* Wallet Icon - Enhanced */}
+                <motion.div
+                    className="group relative"
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.92 }}
+                >
+                    <motion.button
+                        onClick={onWalletClick}
+                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-200 relative overflow-hidden group/btn ${
+                            activeTab === 'wallet'
+                                ? 'bg-[#00a884] text-white shadow-lg shadow-[#00a884]/40 scale-110'
+                                : 'bg-transparent text-gray-300 hover:bg-[#2a3a42] hover:text-white'
+                        }`}
+                        whileHover={{
+                            backgroundColor: activeTab === 'wallet' ? '#00a884' : '#2a3a42',
+                        }}
+                        whileTap={{ scale: 0.9 }}
+                    >
+                        {activeTab !== 'wallet' && (
+                            <motion.div
+                                className="absolute inset-0 bg-white rounded-full opacity-0"
+                                whileHover={{ opacity: 0.1 }}
+                            />
+                        )}
+                        <Wallet className="w-5 h-5 relative z-10" strokeWidth={2} />
+                    </motion.button>
+                    {activeTab === 'wallet' && (
+                        <motion.div
+                            layoutId="activeIndicator"
+                            className="absolute -left-4 top-1/2 transform -translate-y-1/2 w-1.5 h-9 bg-[#00a884] rounded-r-full shadow-lg shadow-[#00a884]/50"
+                            transition={{ type: 'spring', stiffness: 400, damping: 40 }}
+                        />
+                    )}
+                    <motion.div
+                        className="absolute left-full ml-3 top-1/2 -translate-y-1/2 bg-[#111b21] border border-[#2a3a42] text-white px-3 py-1.5 rounded text-xs whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 shadow-lg"
+                        initial={{ x: -5, opacity: 0 }}
+                        whileHover={{ x: 0, opacity: 1 }}
+                    >
+                        Dompet
+                        {activeTab === 'wallet' && (
+                            <span className="ml-1 text-[#00a884] font-semibold">●</span>
+                        )}
+                    </motion.div>
+                </motion.div>
+
+                {/* Meta AI Icon */}
                 <motion.div
                     className="group relative"
                     whileHover={{ scale: 1.08 }}

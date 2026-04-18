@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ConversationSidebar } from '@/Components/Chat/ConversationSidebar';
 import { ChatWindow } from '@/Components/Chat/ChatWindow';
 import { NavigationRail } from '@/Components/Chat/NavigationRail';
+import { WalletSection } from '@/Components/Chat/WalletSection';
 import { StarredMessagesModal } from '@/Components/Chat/StarredMessagesModal';
 import { ProfileSettingsModal } from '@/Components/Chat/ProfileSettingsModal';
 import { NewGroupModal } from '@/Components/Chat/NewGroupModal';
@@ -45,7 +46,8 @@ export default function ChatIndexPage() {
     const [activeConversationId, setActiveConversationId] = useState<number | undefined>();
     const [activeModal, setActiveModal] = useState<ActiveModalType>(null);
     const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
-    const [activeTab, setActiveTab] = useState<'chats' | 'calls' | 'status' | 'communities'>('chats');
+    const [isWalletOpen, setIsWalletOpen] = useState<boolean>(false);
+    const [activeTab, setActiveTab] = useState<'chats' | 'calls' | 'status' | 'communities' | 'wallet'>('chats');
 
     // Mobile state management
     const [isMobileSidebarVisible, setIsMobileSidebarVisible] = useState(true);
@@ -121,6 +123,23 @@ export default function ChatIndexPage() {
         setIsProfileOpen(false);
     }, []);
 
+    // Wallet view handlers
+    const handleOpenWallet = useCallback(() => {
+        setIsWalletOpen(true);
+    }, []);
+
+    const handleCloseWallet = useCallback(() => {
+        setIsWalletOpen(false);
+    }, []);
+
+    // Handle tab changes including wallet
+    const handleTabChange = useCallback((tab: 'chats' | 'calls' | 'status' | 'communities' | 'wallet') => {
+        setActiveTab(tab);
+        if (tab === 'wallet') {
+            handleOpenWallet();
+        }
+    }, []);
+
     return (
         <div className="fixed inset-0 w-screen h-screen bg-[#0b141a] overflow-hidden">
             {/* Main Layout Container - Base layer with Navigation Rail */}
@@ -133,11 +152,12 @@ export default function ChatIndexPage() {
                 {/* Navigation Rail - Always visible (64px width) */}
                 <NavigationRail
                     activeTab={activeTab}
-                    onTabChange={setActiveTab}
+                    onTabChange={handleTabChange}
                     userAvatar={currentUser.avatar}
                     userName={currentUser.name}
                     onProfileClick={handleOpenProfile}
                     onStarredClick={() => openModal('starred')}
+                    onWalletClick={handleOpenWallet}
                 />
 
                 {/* Sidebar - Desktop: always visible (350-400px), Mobile: hidden when chat selected */}
@@ -166,6 +186,15 @@ export default function ChatIndexPage() {
                                 <ProfileSection
                                     user={currentUser}
                                     onBack={handleCloseProfile}
+                                />
+                            )}
+                        </AnimatePresence>
+
+                        {/* Wallet Section Overlay */}
+                        <AnimatePresence>
+                            {isWalletOpen && (
+                                <WalletSection
+                                    onBack={handleCloseWallet}
                                 />
                             )}
                         </AnimatePresence>
@@ -201,6 +230,15 @@ export default function ChatIndexPage() {
                                         <ProfileSection
                                             user={currentUser}
                                             onBack={handleCloseProfile}
+                                        />
+                                    )}
+                                </AnimatePresence>
+
+                                {/* Wallet Section Overlay - Mobile */}
+                                <AnimatePresence>
+                                    {isWalletOpen && (
+                                        <WalletSection
+                                            onBack={handleCloseWallet}
                                         />
                                     )}
                                 </AnimatePresence>

@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Search, MessageSquare, Plus, Star, User } from 'lucide-react';
+import { Search, MessageSquare, Plus, Star, User, Users, CheckCircle, Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useGlobalSearch } from '@/hooks/useSearch';
 import { ThemeToggle } from '@/Components/ThemeToggle';
 import { SidebarDropdown } from '@/Components/Chat/SidebarDropdown';
 import type { Conversation, User as UserType } from '@/types/chat';
+
+type FilterType = 'all' | 'unread' | 'favourites' | 'groups';
 
 export interface ConversationItemProps {
     conversation: Conversation;
@@ -99,6 +101,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
     onOpenProfileSettings,
     onOpenStarredMessages,
 }) => {
+    const [activeFilter, setActiveFilter] = useState<FilterType>('all');
     const { 
         searchQuery, 
         handleSearch, 
@@ -106,7 +109,21 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         isLoading 
     } = useGlobalSearch();
 
-    // Use search results if query exists, otherwise use provided conversations
+    // Filter conversations based on active filter
+    const filteredConversations = useMemo(() => {
+        if (activeFilter === 'unread') {
+            return conversations.filter(c => (c.unread_count ?? 0) > 0);
+        }
+        if (activeFilter === 'favourites') {
+            return conversations.filter(c => c.pivot?.is_pinned);
+        }
+        if (activeFilter === 'groups') {
+            return conversations.filter(c => c.is_group);
+        }
+        return conversations;
+    }, [conversations, activeFilter]);
+
+    // Use search results if query exists, otherwise use filtered conversations
     const displayedConversations = useMemo(() => {
         if (searchQuery.length >= 2) {
             // When searching, return search results
@@ -120,8 +137,8 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
             } as unknown as Conversation));
             return searchConversations;
         }
-        return conversations;
-    }, [searchQuery, results.conversations, conversations]);
+        return filteredConversations;
+    }, [searchQuery, results.conversations, filteredConversations]);
 
     const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         const query = e.target.value;
@@ -196,17 +213,17 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
 
             {/* Search Bar */}
             <motion.div
-                className="p-3 bg-[#111b21] flex-shrink-0"
+                className="px-3 py-3 bg-[#111b21] flex-shrink-0"
                 layout
             >
                 <motion.div
-                    className="relative flex items-center bg-[#202c33] rounded-xl px-3 py-2 transition-all shadow-inner focus-within:ring-2 focus-within:ring-[#005c4b]"
+                    className="relative flex items-center bg-[#202c33] rounded-lg px-3 py-2.5 transition-all shadow-inner focus-within:ring-2 focus-within:ring-[#005c4b]"
                     whileFocus={{ scale: 1.02 }}
                 >
                     <Search className="w-4 h-4 text-gray-500 mr-2 flex-shrink-0" />
                     <input
                         type="text"
-                        placeholder="Search or start new chat"
+                        placeholder="Cari atau buat chat baru"
                         value={searchQuery}
                         onChange={handleSearchInput}
                         className="bg-transparent border-none focus:ring-0 text-sm w-full text-white placeholder-gray-500 outline-none"
@@ -223,19 +240,142 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 </motion.div>
             </motion.div>
 
+            {/* Filter Pills */}
+            {!searchQuery && (
+                <motion.div
+                    className="px-3 py-2 bg-[#111b21] flex-shrink-0 border-b border-[#202c33]"
+                    layout
+                >
+                    <motion.div
+                        className="flex gap-2 overflow-x-auto custom-scrollbar pb-1"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                    >
+                        {/* All Filter */}
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setActiveFilter('all')}
+                            className={`px-4 py-2 rounded-full font-medium text-sm transition-all flex-shrink-0 whitespace-nowrap ${
+                                activeFilter === 'all'
+                                    ? 'bg-[#005c4b] text-white shadow-lg shadow-[#005c4b]/30'
+                                    : 'bg-[#202c33] text-gray-300 hover:bg-[#2a3a42] hover:text-white'
+                            }`}
+                        >
+                            Semua
+                        </motion.button>
+
+                        {/* Unread Filter */}
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setActiveFilter('unread')}
+                            className={`px-4 py-2 rounded-full font-medium text-sm transition-all flex-shrink-0 whitespace-nowrap flex items-center gap-1 ${
+                                activeFilter === 'unread'
+                                    ? 'bg-[#005c4b] text-white shadow-lg shadow-[#005c4b]/30'
+                                    : 'bg-[#202c33] text-gray-300 hover:bg-[#2a3a42] hover:text-white'
+                            }`}
+                        >
+                            <CheckCircle className="w-4 h-4" />
+                            Belum Dibaca
+                        </motion.button>
+
+                        {/* Favourites Filter */}
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setActiveFilter('favourites')}
+                            className={`px-4 py-2 rounded-full font-medium text-sm transition-all flex-shrink-0 whitespace-nowrap flex items-center gap-1 ${
+                                activeFilter === 'favourites'
+                                    ? 'bg-[#005c4b] text-white shadow-lg shadow-[#005c4b]/30'
+                                    : 'bg-[#202c33] text-gray-300 hover:bg-[#2a3a42] hover:text-white'
+                            }`}
+                        >
+                            <Heart className="w-4 h-4" />
+                            Favorit
+                        </motion.button>
+
+                        {/* Groups Filter */}
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setActiveFilter('groups')}
+                            className={`px-4 py-2 rounded-full font-medium text-sm transition-all flex-shrink-0 whitespace-nowrap flex items-center gap-1 ${
+                                activeFilter === 'groups'
+                                    ? 'bg-[#005c4b] text-white shadow-lg shadow-[#005c4b]/30'
+                                    : 'bg-[#202c33] text-gray-300 hover:bg-[#2a3a42] hover:text-white'
+                            }`}
+                        >
+                            <Users className="w-4 h-4" />
+                            Grup
+                        </motion.button>
+                    </motion.div>
+                </motion.div>
+            )}
+
             {/* Conversations List */}
             <motion.div
-                className="flex-1 overflow-y-auto custom-scrollbar"
+                className="flex-1 overflow-y-auto custom-scrollbar bg-[#0b141a]"
                 layout
             >
                 {displayedConversations.length === 0 && results.messages.length === 0 ? (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="flex flex-col items-center justify-center h-full text-gray-500 gap-3"
+                        className="flex flex-col items-center justify-center h-full text-gray-400 px-6"
                     >
-                        <MessageSquare className="w-12 h-12 opacity-50" />
-                        <p className="text-sm">{searchQuery ? 'No results found' : 'No conversations yet'}</p>
+                        {/* Empty State Illustration */}
+                        <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.1 }}
+                            className="relative w-32 h-32 mb-6"
+                        >
+                            {/* Outer circle animation */}
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ repeat: Infinity, duration: 20, ease: 'linear' }}
+                                className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#005c4b] opacity-30"
+                            />
+                            {/* Middle circle */}
+                            <motion.div
+                                animate={{ rotate: -360 }}
+                                transition={{ repeat: Infinity, duration: 15, ease: 'linear' }}
+                                className="absolute inset-2 rounded-full border-2 border-transparent border-r-[#00a884] opacity-20"
+                            />
+                            {/* Center icon */}
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <MessageSquare className="w-16 h-16 text-[#005c4b] opacity-40" />
+                            </div>
+                        </motion.div>
+
+                        {/* Empty State Text */}
+                        {searchQuery ? (
+                            <>
+                                <h3 className="text-base font-semibold text-gray-300 mb-2">Hasil tidak ditemukan</h3>
+                                <p className="text-sm text-gray-500 text-center">Coba cari dengan kata kunci lain</p>
+                            </>
+                        ) : activeFilter === 'unread' ? (
+                            <>
+                                <h3 className="text-base font-semibold text-gray-300 mb-2">Tidak ada chat belum dibaca</h3>
+                                <p className="text-sm text-gray-500 text-center">Semua chat Anda sudah dibaca</p>
+                            </>
+                        ) : activeFilter === 'favourites' ? (
+                            <>
+                                <h3 className="text-base font-semibold text-gray-300 mb-2">Tidak ada favorit</h3>
+                                <p className="text-sm text-gray-500 text-center">Tandai chat penting sebagai favorit</p>
+                            </>
+                        ) : activeFilter === 'groups' ? (
+                            <>
+                                <h3 className="text-base font-semibold text-gray-300 mb-2">Tidak ada grup</h3>
+                                <p className="text-sm text-gray-500 text-center">Buat atau bergabung dengan grup</p>
+                            </>
+                        ) : (
+                            <>
+                                <h3 className="text-base font-semibold text-gray-300 mb-2">Mulai percakapan</h3>
+                                <p className="text-sm text-gray-500 text-center">Klik ikon + untuk membuat chat atau grup baru</p>
+                            </>
+                        )}
                     </motion.div>
                 ) : (
                     <motion.div layout>
@@ -263,7 +403,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                                 className="border-t border-gray-800 mt-2 pt-2"
                             >
                                 <div className="px-3 py-2 text-xs text-gray-500 font-500">
-                                    Messages ({results.messages.length})
+                                    Pesan ({results.messages.length})
                                 </div>
                                 {results.messages.slice(0, 5).map((msg, idx) => (
                                     <motion.button
