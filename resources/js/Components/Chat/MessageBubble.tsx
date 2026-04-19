@@ -33,6 +33,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     
     const isSent = message.user_id === currentUser.id;
     const isOptimistic = (message as any).is_optimistic === true;
+    const isMetaAI = message.user?.email === 'ai@whatsapp-clone.local' || message.user?.name === 'Meta AI';
     const timestamp = message.created_at ? new Date(message.created_at).toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit',
@@ -127,7 +128,9 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 {/* Message content bubble */}
                 <motion.div
                     className={`max-w-xs px-3 py-2 rounded-lg ${
-                        isSent
+                        isMetaAI
+                            ? 'bg-gradient-to-r from-[#703efe] to-[#ff4694] text-white rounded-br-lg'
+                            : isSent
                             ? 'bg-[#005c4b] text-white rounded-bl-lg'
                             : 'bg-[#202c33] text-gray-100 rounded-br-lg'
                     } ${isOptimistic ? 'opacity-70' : ''}`}
@@ -208,8 +211,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                         </div>
                     )}
 
-                    {/* Timestamp (for received messages) */}
-                    {!isSent && (
+                    {/* Timestamp with AI Badge (for received Meta AI messages) */}
+                    {!isSent && isMetaAI && (
+                        <div className="flex items-center justify-between gap-2 mt-1">
+                            <span className="text-xs opacity-70">{timestamp}</span>
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-white bg-opacity-20 text-white">
+                                AI
+                            </span>
+                        </div>
+                    )}
+
+                    {/* Timestamp (for other received messages) */}
+                    {!isSent && !isMetaAI && (
                         <div className="text-xs opacity-70 mt-1">
                             {timestamp}
                         </div>
