@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\MediaController;
+use App\Http\Controllers\MetaAIController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -109,6 +110,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/conversations/{conversation}/messages', [ChatController::class, 'store'])
         ->middleware('rate-limit-messages')
         ->name('messages.store');
+
+    /**
+     * Meta AI Routes
+     * Handle interactions with Meta AI system user
+     */
+    Route::post('/conversations/{conversation}/ai/messages', [MetaAIController::class, 'store'])
+        ->middleware('rate-limit-messages')
+        ->name('ai.messages.store');
 
     /**
      * Group Management Routes
