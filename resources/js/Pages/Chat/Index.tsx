@@ -11,8 +11,6 @@ import { ProfileSettingsModal } from '@/Components/Chat/ProfileSettingsModal';
 import { NewGroupModal } from '@/Components/Chat/NewGroupModal';
 import { NewChatModal } from '@/Components/Chat/NewChatModal';
 import { ProfileSection } from '@/Components/Chat/ProfileSection';
-import { EmptyConversationState } from '@/Components/Chat/EmptyConversationState';
-import { NoConversationsState } from '@/Components/Chat/NoConversationsState';
 import type { Conversation, Message, User } from '@/types/chat';
 import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
@@ -256,9 +254,7 @@ export default function ChatIndexPage() {
                     transition={{ duration: 0.4, delay: 0.1 }}
                     className="hidden md:flex md:flex-col md:flex-1 md:relative md:z-5 bg-[#0b141a]"
                 >
-                    {conversationsArray.length === 0 ? (
-                        <NoConversationsState onCreateGroup={() => openModal('groupCreate')} />
-                    ) : activeConversation ? (
+                    {activeConversation ? (
                         <ChatWindow
                             conversation={activeConversation}
                             currentUser={currentUser}

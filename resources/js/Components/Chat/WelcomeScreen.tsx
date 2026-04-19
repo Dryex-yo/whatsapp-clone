@@ -1,4 +1,5 @@
 import React from 'react';
+import { router } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { FileText, UserPlus, Sparkles, Lock } from 'lucide-react';
 
@@ -8,6 +9,16 @@ import { FileText, UserPlus, Sparkles, Lock } from 'lucide-react';
  * Features modern action cards matching WhatsApp Desktop design
  */
 export default function WelcomeScreen() {
+    const handleMetaAIClick = () => {
+        router.post(route('chat.ai.start'), {}, {
+            onSuccess: () => {
+                // Navigation happens automatically via redirect
+            },
+            onError: (errors) => {
+                console.error('Failed to start AI conversation:', errors);
+            },
+        });
+    };
     const actionCards = [
         {
             id: 'document',
@@ -70,7 +81,8 @@ export default function WelcomeScreen() {
                                 transition={{ delay: 0.3 + index * 0.1 }}
                                 whileHover={{ scale: 1.08, y: -8 }}
                                 whileTap={{ scale: 0.95 }}
-                                className="flex flex-col items-center justify-center p-8 bg-[#202c33] rounded-2xl border border-[#2a3a42] hover:border-[#00a884]/50 transition-all duration-300 group cursor-pointer"
+                                onClick={card.id === 'meta-ai' ? handleMetaAIClick : undefined}
+                                className="flex flex-col items-center justify-center p-8 bg-[#202c33] rounded-2xl border border-[#2a3a42] hover:border-[#00a884]/50 hover:scale-105 transition-all duration-300 group cursor-pointer"
                             >
                                 {/* Icon Container with Gradient */}
                                 <motion.div
@@ -104,7 +116,6 @@ export default function WelcomeScreen() {
                     transition={{ delay: 0.6 }}
                     className="text-gray-500 text-xs md:text-sm text-center max-w-md"
                 >
-                    Pilih chat dari daftar di sebelah kiri atau cari kontak untuk memulai percakapan baru
                 </motion.p>
             </div>
 

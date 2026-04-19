@@ -31,6 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('chat')->group(function () {
         Route::get('/', [ChatController::class, 'index'])->name('chat.index');
         Route::get('/{conversation}', [ChatController::class, 'show'])->name('chat.show');
+        Route::post('/ai/start', [ChatController::class, 'startAIConversation'])->name('chat.ai.start');
     });
 
     // Profile Management

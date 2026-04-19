@@ -952,5 +952,52 @@ class ChatController extends Controller
             'created' => true,
         ], 201);
     }
-}
 
+    /**
+     * Start a conversation with Meta AI system user.
+     * Creates a system user 'Meta AI' if it doesn't exist and finds or creates a conversation.
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function startAIConversation(Request $request)
+    {
+        $user = $request->user();
+        $userId = $user->id;
+
+        // Get or create the Meta AI system user
+        $aiUser = User::firstOrCreate(
+            ['email' => 'ai@whatsapp-clone.local'],
+            [
+                'name' => 'Meta AI',
+                'password' => bcrypt(uniqid()),
+            ]
+        );
+
+        // Check if a direct conversation already exists between user and Meta AI
+        $existingConversation = Conversation::where('is_group', false)
+            ->whereHas('users', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
+            ->whereHas('users', function ($query) use ($aiUser) {
+                $query->where('user_id', $aiUser->id);
+            })
+            ->first();
+
+        if ($existingConversation) {
+            return redirect()->route('chat.show', $existingConversation->id);
+        }
+
+        // Create new AI conversation
+        $conversation = Conversation::create([
+            'is_group' => false,
+            'name' => null,
+        ]);
+
+        // Attach both users to the conversation
+        $conversation->users()->attach([$user->id, $aiUser->id]);
+
+        return redirect()->route('chat.show', $conversation->id);
+    }
+
+}
