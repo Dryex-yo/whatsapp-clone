@@ -7,6 +7,8 @@ use App\Models\Message;
 use App\Models\User;
 use App\Http\Resources\MessageResource;
 use App\Events\MessageSent;
+use App\Services\AIService;
+use App\Jobs\ProcessMetaAIResponse;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -14,8 +16,14 @@ use Illuminate\Http\JsonResponse;
 /**
  * MetaAIController - Handles interactions with Meta AI system user
  * 
- * Processes messages to Meta AI, generates mock responses, and broadcasts
- * them in real-time via Laravel Reverb WebSockets.
+ * Processes messages to Meta AI, generates responses via AI API (OpenAI/Gemini),
+ * and broadcasts them in real-time via Laravel Reverb WebSockets.
+ * 
+ * Features:
+ * - Conversation context (last 5 messages)
+ * - Asynchronous processing via queued jobs
+ * - Real-time response broadcasting
+ * - Error handling and logging
  */
 class MetaAIController extends Controller
 {
@@ -30,9 +38,9 @@ class MetaAIController extends Controller
      * Handle a message sent to Meta AI.
      * 
      * - Saves user's message to messages table
-     * - Generates a mock AI response
-     * - Saves AI response to messages table
-     * - Broadcasts both messages in real-time via Reverb
+     * - Broadcasts user message immediately
+     * - Queues AI response generation with conversation context
+     * - AI response is broadcast via Reverb once API returns result
      * 
      * @param Request $request
      * @param Conversation $conversation
@@ -71,26 +79,6 @@ class MetaAIController extends Controller
         // Broadcast user's message immediately
         MessageSent::dispatch($userMessage);
 
-        // Generate mock AI response
-        $mockResponse = 'Halo! Saya Meta AI, asisten virtualmu. Fitur ini sedang dalam pengembangan.';
-
-        // Create AI response message
-        $aiMessage = Message::create([
-            'conversation_id' => $conversation->id,
-            'user_id' => $aiUser->id,
-            'body' => $mockResponse,
-            'type' => 'text',
-            'status' => 'sent',
-            'is_encrypted' => false,
-            'is_ephemeral' => false,
-        ]);
-
-        // Load AI message relationships for broadcast
-        $aiMessage->load(['user', 'attachments']);
-
-        // Broadcast AI response immediately
-        MessageSent::dispatch($aiMessage);
-
         // Update conversation's updated_at timestamp
         $conversation->touch();
 
@@ -102,10 +90,20 @@ class MetaAIController extends Controller
         // Invalidate message pagination cache for this conversation
         cache()->tags(["conversation.{$conversation->id}.messages"])->flush();
 
-        // Return both messages to the client
+        // Queue AI response generation with conversation context as background job
+        // This allows the API response to be handled asynchronously without blocking the user
+        ProcessMetaAIResponse::dispatch(
+            $conversation,
+            $userMessage,
+            $validated['body'],
+            $user
+        );
+
+        // Return user message to the client immediately
         return response()->json([
             'userMessage' => new MessageResource($userMessage),
-            'aiMessage' => new MessageResource($aiMessage),
+            'processing' => true,
+            'message' => 'Your message has been sent. AI response is being generated...',
         ], 201);
     }
 }

@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    'ai' => [
+        'provider' => env('AI_PROVIDER', 'openai'),
+        'openai' => [
+            'api_key' => env('OPENAI_API_KEY'),
+            'model' => env('OPENAI_MODEL', 'gpt-3.5-turbo'),
+            'timeout' => env('OPENAI_TIMEOUT', 30),
+        ],
+        'gemini' => [
+            'api_key' => env('GEMINI_API_KEY'),
+            'model' => env('GEMINI_MODEL', 'gemini-1.5-flash'),
+        ],
+    ],
+
 ];
