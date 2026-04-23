@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { usePage, router } from '@inertiajs/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ConversationSidebar } from '@/Components/Chat/ConversationSidebar';
@@ -29,10 +29,17 @@ type ActiveModalType = 'starred' | 'profile' | 'groupCreate' | 'newChat' | null;
  * Displays list of conversations with responsive sidebar and empty chat window
  * Features unified modal management with fixed overlay system at z-[999]
  * Implements Inertia router for CSRF-protected requests
+ * Synchronizes URL parameters with conversation selection state
  */
 export default function ChatIndexPage() {
-    const { props } = usePage<PageProps>();
+    const { props, url } = usePage<PageProps>();
     const { currentUser, conversations: initialConversations } = props;
+
+    // Extract conversation ID from current URL
+    const urlConversationId = useMemo(() => {
+        const match = url.match(/\/chat\/(\d+)/);
+        return match ? parseInt(match[1], 10) : undefined;
+    }, [url]);
 
     // Ensure conversations is always an array
     const conversationsArray = useMemo(
@@ -42,7 +49,7 @@ export default function ChatIndexPage() {
 
     // State management
     const [filteredConversations, setFilteredConversations] = useState<Conversation[]>(conversationsArray);
-    const [activeConversationId, setActiveConversationId] = useState<number | undefined>();
+    const [activeConversationId, setActiveConversationId] = useState<number | undefined>(urlConversationId);
     const [activeModal, setActiveModal] = useState<ActiveModalType>(null);
     const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
     const [isWalletOpen, setIsWalletOpen] = useState<boolean>(false);
@@ -50,6 +57,13 @@ export default function ChatIndexPage() {
 
     // Mobile state management
     const [isMobileSidebarVisible, setIsMobileSidebarVisible] = useState(true);
+
+    // Sync activeConversationId with URL parameter on mount and when URL changes
+    useEffect(() => {
+        if (urlConversationId !== activeConversationId) {
+            setActiveConversationId(urlConversationId);
+        }
+    }, [urlConversationId]);
 
     // Derived state
     const activeConversation = filteredConversations.find(
@@ -62,8 +76,12 @@ export default function ChatIndexPage() {
         if (typeof window !== 'undefined' && window.innerWidth < 768) {
             setIsMobileSidebarVisible(false);
         }
-        // Navigate to show page using Inertia router
-        router.get(`/chat/${id}`);
+        // Navigate using Inertia router without full page reload
+        router.visit(`/chat/${id}`, {
+            replace: false,
+            preserveScroll: true,
+            preserveState: true,
+        });
     }, []);
 
     const handleSearchChange = useCallback((query: string) => {
@@ -137,6 +155,11 @@ export default function ChatIndexPage() {
         if (tab === 'wallet') {
             handleOpenWallet();
         }
+    }, []);
+
+    // Handle mobile back click to show sidebar again
+    const handleMobileBackClick = useCallback(() => {
+        setIsMobileSidebarVisible(true);
     }, []);
 
     return (
@@ -247,25 +270,60 @@ export default function ChatIndexPage() {
                 </AnimatePresence>
 
                 {/* Chat Window - Desktop: visible (flexible), Mobile: hidden by default */}
-                <motion.div
-                    key="chat-window"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.4, delay: 0.1 }}
-                    className="hidden md:flex md:flex-col md:flex-1 md:relative md:z-5 bg-[#0b141a]"
-                >
+                <AnimatePresence mode="wait">
                     {activeConversation ? (
-                        <ChatWindow
-                            conversation={activeConversation}
-                            currentUser={currentUser}
-                            messages={[]}
-                            isLoading={false}
-                            onSendMessage={handleSendMessage}
-                        />
+                        <motion.div
+                            key={`chat-${activeConversationId}`}
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="hidden md:flex md:flex-col md:flex-1 md:relative md:z-5 bg-[#0b141a]"
+                        >
+                            <ChatWindow
+                                conversation={activeConversation}
+                                currentUser={currentUser}
+                                messages={[]}
+                                isLoading={false}
+                                onSendMessage={handleSendMessage}
+                            />
+                        </motion.div>
                     ) : (
-                        <WelcomeScreen />
+                        <motion.div
+                            key="welcome-screen"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="hidden md:flex md:flex-col md:flex-1 md:relative md:z-5 bg-[#0b141a]"
+                        >
+                            <WelcomeScreen conversations={filteredConversations} />
+                        </motion.div>
                     )}
-                </motion.div>
+                </AnimatePresence>
+
+                {/* Mobile Chat View - Shows when conversation is selected on mobile */}
+                <AnimatePresence>
+                    {!isMobileSidebarVisible && activeConversation && (
+                        <motion.div
+                            key={`mobile-chat-${activeConversationId}`}
+                            initial={{ opacity: 0, x: 400 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 400 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="md:hidden absolute inset-0 z-20 w-full h-full flex flex-col bg-[#0b141a]"
+                        >
+                            <ChatWindow
+                                conversation={activeConversation}
+                                currentUser={currentUser}
+                                messages={[]}
+                                isLoading={false}
+                                onSendMessage={handleSendMessage}
+                                onMobileBackClick={handleMobileBackClick}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </motion.div>
 
             {/* Global Modal System - Fixed overlay at z-[999]

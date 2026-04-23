@@ -29,12 +29,27 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
             whileHover={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}
             whileTap={{ scale: 0.98 }}
             onClick={() => onSelect(conversation.id)}
-            className={`w-full flex items-center px-3 py-3 cursor-pointer transition-colors border-b border-gray-800 last:border-b-0 ${
-                isActive ? 'bg-[#2a3942]' : 'hover:bg-[#1f2937]'
+            className={`w-full flex items-center px-3 py-3 cursor-pointer transition-all duration-200 border-l-4 border-b border-gray-800 last:border-b-0 relative ${
+                isActive 
+                    ? 'bg-[#2a3942] border-l-[#00a884]' 
+                    : 'border-l-transparent hover:bg-[#1f2937]'
             }`}
         >
+            {/* Active indicator dot - shows left accent */}
+            {isActive && (
+                <motion.div
+                    layoutId="active-indicator"
+                    className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-[#00a884] to-[#00a884]"
+                    initial={{ scaleY: 0 }}
+                    animate={{ scaleY: 1 }}
+                    transition={{ duration: 0.2 }}
+                />
+            )}
+
             {/* Avatar */}
-            <div className="w-12 h-12 rounded-full flex-shrink-0 mr-3 overflow-hidden shadow-md">
+            <div className={`w-12 h-12 rounded-full flex-shrink-0 mr-3 overflow-hidden shadow-md ring-2 transition-all ${
+                isActive ? 'ring-[#00a884]/50' : 'ring-gray-700'
+            }`}>
                 <img 
                     src={conversation.avatar || conversation.other_user?.avatar || `https://ui-avatars.com/api/?name=${displayName}`}
                     alt={displayName}
@@ -45,10 +60,14 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
             {/* Content */}
             <div className="flex-1 min-w-0">
                 <div className="flex justify-between items-baseline">
-                    <h3 className="text-[14px] font-500 text-gray-100 truncate">
+                    <h3 className={`text-[14px] font-500 truncate transition-colors ${
+                        isActive ? 'text-[#00a884] font-600' : 'text-gray-100'
+                    }`}>
                         {displayName}
                     </h3>
-                    <span className="text-xs text-gray-500 ml-2 flex-shrink-0">
+                    <span className={`text-xs ml-2 flex-shrink-0 transition-colors ${
+                        isActive ? 'text-[#00a884]' : 'text-gray-500'
+                    }`}>
                         {conversation.last_message?.created_at && (
                             new Date(conversation.last_message.created_at).toLocaleTimeString('en-US', { 
                                 hour: '2-digit', 
@@ -59,8 +78,12 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
                 </div>
 
                 {/* Last Message Preview */}
-                <p className={`text-xs truncate mt-1 ${
-                    hasUnread ? 'text-gray-100 font-500' : 'text-gray-400'
+                <p className={`text-xs truncate mt-1 transition-colors ${
+                    isActive 
+                        ? 'text-gray-200 font-500' 
+                        : hasUnread 
+                            ? 'text-gray-100 font-500' 
+                            : 'text-gray-400'
                 }`}>
                     {conversation.last_message?.body || 'No messages yet'}
                 </p>
@@ -71,7 +94,11 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
                 <motion.div
                     animate={{ scale: [1, 1.1, 1] }}
                     transition={{ repeat: Infinity, duration: 2 }}
-                    className="w-5 h-5 rounded-full bg-[#005c4b] flex items-center justify-center text-xs font-bold text-white ml-2 flex-shrink-0"
+                    className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ml-2 flex-shrink-0 transition-colors ${
+                        isActive 
+                            ? 'bg-[#00a884] text-white' 
+                            : 'bg-[#005c4b] text-white'
+                    }`}
                 >
                     {conversation.unread_count}
                 </motion.div>

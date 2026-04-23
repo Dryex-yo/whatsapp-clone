@@ -1,24 +1,44 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { router } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { FileText, UserPlus, Sparkles, Lock } from 'lucide-react';
+import type { Conversation } from '@/types/chat';
+
+interface WelcomeScreenProps {
+    conversations?: Conversation[];
+}
 
 /**
  * Welcome Screen Component
  * Displays when no conversation is selected in the chat window
  * Features modern action cards matching WhatsApp Desktop design
  */
-export default function WelcomeScreen() {
-    const handleMetaAIClick = () => {
-        router.post(route('chat.ai.start'), {}, {
-            onSuccess: () => {
-                // Navigation happens automatically via redirect
-            },
-            onError: (errors) => {
-                console.error('Failed to start AI conversation:', errors);
-            },
-        });
-    };
+export default function WelcomeScreen({ conversations = [] }: WelcomeScreenProps) {
+    // Search for or navigate to Meta AI conversation
+    const handleMetaAIClick = useCallback(() => {
+        // First, try to find existing Meta AI conversation
+        const metaAIConversation = conversations.find(
+            (conv) => conv.name === 'Meta AI' || conv.other_user?.name === 'Meta AI'
+        );
+
+        if (metaAIConversation) {
+            // If exists, navigate to it
+            router.visit(`/chat/${metaAIConversation.id}`, {
+                preserveScroll: true,
+                preserveState: true,
+            });
+        } else {
+            // Otherwise, create or start new AI chat
+            router.post(route('chat.ai.start'), {}, {
+                onSuccess: () => {
+                    // Navigation happens automatically via redirect
+                },
+                onError: (errors) => {
+                    console.error('Failed to start AI conversation:', errors);
+                },
+            });
+        }
+    }, [conversations]);
     const actionCards = [
         {
             id: 'document',

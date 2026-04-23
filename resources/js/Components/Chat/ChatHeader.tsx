@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, Phone, Video, MoreVertical } from 'lucide-react';
+import { MessageSquare, Phone, Video, MoreVertical, ChevronLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { NotificationSettings } from './NotificationSettings';
 import type { Conversation, User } from '@/types/chat';
@@ -13,6 +13,7 @@ export interface ChatHeaderProps {
     isSoundEnabled?: boolean;
     onToggleSound?: () => void;
     onRequestNotificationPermission?: () => Promise<boolean>;
+    onMobileBackClick?: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({ 
@@ -24,6 +25,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     isSoundEnabled = true,
     onToggleSound,
     onRequestNotificationPermission,
+    onMobileBackClick,
 }) => {
     // Ensure users is an array before calling find
     const usersArray = Array.isArray(conversation.users) ? conversation.users : [];
@@ -66,6 +68,16 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         >
             {/* Left Section: Name & Status */}
             <div className="flex items-center gap-3 flex-1 min-w-0">
+                {/* Mobile Back Button */}
+                <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={onMobileBackClick}
+                    className="md:hidden mr-2 text-gray-400 hover:text-gray-100 transition"
+                >
+                    <ChevronLeft className="w-5 h-5" />
+                </motion.button>
+
                 <motion.div
                     whileHover={{ scale: 1.05 }}
                     className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 relative"

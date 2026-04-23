@@ -26,6 +26,7 @@ export interface ChatWindowProps {
     isSoundEnabled?: boolean;
     onToggleSound?: () => void;
     onRequestNotificationPermission?: () => Promise<boolean>;
+    onMobileBackClick?: () => void;
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -45,6 +46,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     isSoundEnabled = true,
     onToggleSound,
     onRequestNotificationPermission,
+    onMobileBackClick,
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -132,6 +134,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 isSoundEnabled={isSoundEnabled}
                 onToggleSound={onToggleSound}
                 onRequestNotificationPermission={onRequestNotificationPermission}
+                onMobileBackClick={onMobileBackClick}
             />
 
             {/* Search in Chat Overlay */}
