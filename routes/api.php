@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\MetaAIController;
+use App\Http\Controllers\NearbyUserController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -76,6 +78,23 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/users/{user}/is-blocked', [ChatController::class, 'isUserBlocked'])
         ->name('users.is-blocked');
+
+    /**
+     * Contact Management Routes
+     * Search users and add new contacts
+     */
+    Route::get('/users/search', [ContactController::class, 'search'])
+        ->name('users.search');
+
+    Route::post('/contacts/add', [ContactController::class, 'storeContacts'])
+        ->name('contacts.add');
+
+    /**
+     * Nearby Users Routes
+     * Find users within a specific radius using geolocation
+     */
+    Route::post('/users/nearby', [NearbyUserController::class, 'getNearby'])
+        ->name('users.nearby');
 
     /**
      * Search Routes

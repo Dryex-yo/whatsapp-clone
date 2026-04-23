@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\ContactController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Illuminate\Foundation\Application;
@@ -32,6 +33,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [ChatController::class, 'index'])->name('chat.index');
         Route::get('/{conversation}', [ChatController::class, 'show'])->name('chat.show');
         Route::post('/ai/start', [ChatController::class, 'startAIConversation'])->name('chat.ai.start');
+    });
+
+    // Contacts Management
+    Route::prefix('contacts')->group(function () {
+        Route::get('/add', [ContactController::class, 'add'])->name('contacts.add');
     });
 
     // Profile Management

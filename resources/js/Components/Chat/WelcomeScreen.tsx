@@ -39,6 +39,14 @@ export default function WelcomeScreen({ conversations = [] }: WelcomeScreenProps
             });
         }
     }, [conversations]);
+
+    // Handle Add Contact navigation
+    const handleAddContactClick = useCallback(() => {
+        router.visit('/contacts/add', {
+            preserveScroll: true,
+            preserveState: true,
+        });
+    }, []);
     const actionCards = [
         {
             id: 'document',
@@ -101,7 +109,13 @@ export default function WelcomeScreen({ conversations = [] }: WelcomeScreenProps
                                 transition={{ delay: 0.3 + index * 0.1 }}
                                 whileHover={{ scale: 1.08, y: -8 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={card.id === 'meta-ai' ? handleMetaAIClick : undefined}
+                                onClick={() => {
+                                    if (card.id === 'meta-ai') {
+                                        handleMetaAIClick();
+                                    } else if (card.id === 'contact') {
+                                        handleAddContactClick();
+                                    }
+                                }}
                                 className="flex flex-col items-center justify-center p-8 bg-[#202c33] rounded-2xl border border-[#2a3a42] hover:border-[#00a884]/50 hover:scale-105 transition-all duration-300 group cursor-pointer"
                             >
                                 {/* Icon Container with Gradient */}
