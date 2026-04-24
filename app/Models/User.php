@@ -47,6 +47,9 @@ class User extends Authenticatable
         'last_seen',
         'last_seen_privacy',
         'theme',
+        'latitude',
+        'longitude',
+        'location_updated_at',
     ];
 
     /**
@@ -69,8 +72,11 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'last_seen' => 'datetime',
+            'location_updated_at' => 'datetime',
             'password' => 'hashed',
             'last_seen_privacy' => 'string',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
     }
 

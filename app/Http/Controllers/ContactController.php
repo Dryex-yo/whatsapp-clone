@@ -20,6 +20,14 @@ class ContactController extends Controller
     }
 
     /**
+     * Show the new Add Contact page with manual search and nearby users
+     */
+    public function addNew(): Response
+    {
+        return Inertia::render('Contacts/AddContact');
+    }
+
+    /**
      * Search users by phone number or email
      */
     public function search(Request $request): JsonResponse

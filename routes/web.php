@@ -38,6 +38,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Contacts Management
     Route::prefix('contacts')->group(function () {
         Route::get('/add', [ContactController::class, 'add'])->name('contacts.add');
+        Route::get('/add-new', [ContactController::class, 'addNew'])->name('contacts.add-new');
+        Route::post('/store', [ContactController::class, 'storeContacts'])->name('contacts.store');
     });
 
     // Profile Management
