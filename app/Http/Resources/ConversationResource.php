@@ -27,9 +27,16 @@ class ConversationResource extends JsonResource
         });
 
         $otherUser = null;
-        if (!$this->is_group && $this->users && $currentUserId) {
-            $otherUserModel = $this->users->firstWhere('id', '!=', $currentUserId);
-            $otherUser = $otherUserModel ? new UserResource($otherUserModel) : null;
+        if (!$this->is_group && $currentUserId) {
+            // First check if other_user relation is explicitly set (e.g., from controller)
+            if ($this->relationLoaded('other_user') && $this->other_user) {
+                $otherUser = new UserResource($this->other_user);
+            } 
+            // Fall back to finding other_user from users collection
+            elseif ($this->users) {
+                $otherUserModel = $this->users->firstWhere('id', '!=', $currentUserId);
+                $otherUser = $otherUserModel ? new UserResource($otherUserModel) : null;
+            }
         }
 
         return [

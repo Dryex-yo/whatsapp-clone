@@ -12,7 +12,8 @@ return [
     |
     */
 
-    'host' => env('REVERB_HOST', '0.0.0.0'),
+    // Server binding address - always bind to all interfaces for local development
+    'host' => '0.0.0.0',
     'port' => env('REVERB_PORT', 8000),
     'scheme' => env('REVERB_SCHEME', 'http'),
 

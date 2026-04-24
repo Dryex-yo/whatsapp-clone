@@ -37,10 +37,15 @@ function getReconnectDelay(attempts: number): number {
 }
 
 // Create the Echo instance
+const reverbHost = import.meta.env.VITE_REVERB_HOST || window.location.hostname;
+const reverbPort = import.meta.env.VITE_REVERB_PORT 
+    ? Number(import.meta.env.VITE_REVERB_PORT) 
+    : 8080;
+
 const echo: any = new Echo({
     broadcaster: 'socket.io',
-    host: window.location.hostname,
-    port: 8000,
+    host: reverbHost,
+    port: reverbPort,
     secure: window.location.protocol === 'https:',
     rejectUnauthorized: false,
     reconnection: true,

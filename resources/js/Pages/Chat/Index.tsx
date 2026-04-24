@@ -11,6 +11,7 @@ import { ProfileSettingsModal } from '@/Components/Chat/ProfileSettingsModal';
 import { NewGroupModal } from '@/Components/Chat/NewGroupModal';
 import { NewChatModal } from '@/Components/Chat/NewChatModal';
 import { ProfileSection } from '@/Components/Chat/ProfileSection';
+import { fadeInVariants, slideInVariants } from '@/utils/animationVariants';
 import type { Conversation, Message, User } from '@/types/chat';
 import type { PageProps as InertiaPageProps } from '@inertiajs/core';
 
@@ -57,6 +58,11 @@ export default function ChatIndexPage() {
 
     // Mobile state management
     const [isMobileSidebarVisible, setIsMobileSidebarVisible] = useState(true);
+
+    // Sync conversations when props change (e.g., after adding a contact)
+    useEffect(() => {
+        setFilteredConversations(conversationsArray);
+    }, [conversationsArray]);
 
     // Sync activeConversationId with URL parameter on mount and when URL changes
     useEffect(() => {
@@ -274,10 +280,10 @@ export default function ChatIndexPage() {
                     {activeConversation ? (
                         <motion.div
                             key={`chat-${activeConversationId}`}
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            variants={slideInVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
                             className="hidden md:flex md:flex-col md:flex-1 md:relative md:z-5 bg-[#0b141a]"
                         >
                             <ChatWindow
@@ -291,13 +297,13 @@ export default function ChatIndexPage() {
                     ) : (
                         <motion.div
                             key="welcome-screen"
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            exit={{ opacity: 0, x: 20 }}
-                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            variants={fadeInVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
                             className="hidden md:flex md:flex-col md:flex-1 md:relative md:z-5 bg-[#0b141a]"
                         >
-                            <WelcomeScreen conversations={filteredConversations} />
+                            <WelcomeScreen key={`welcome-${filteredConversations.length}`} conversations={filteredConversations} />
                         </motion.div>
                     )}
                 </AnimatePresence>

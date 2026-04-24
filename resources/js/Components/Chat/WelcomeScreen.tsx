@@ -1,7 +1,9 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { router } from '@inertiajs/react';
 import { motion } from 'framer-motion';
 import { FileText, UserPlus, Sparkles, Lock } from 'lucide-react';
+import { AddContactModal } from './AddContactModal';
+import { containerVariants, itemVariants } from '@/utils/animationVariants';
 import type { Conversation } from '@/types/chat';
 
 interface WelcomeScreenProps {
@@ -14,6 +16,8 @@ interface WelcomeScreenProps {
  * Features modern action cards matching WhatsApp Desktop design
  */
 export default function WelcomeScreen({ conversations = [] }: WelcomeScreenProps) {
+    const [isAddContactModalOpen, setIsAddContactModalOpen] = useState(false);
+
     // Search for or navigate to Meta AI conversation
     const handleMetaAIClick = useCallback(() => {
         // First, try to find existing Meta AI conversation
@@ -40,11 +44,22 @@ export default function WelcomeScreen({ conversations = [] }: WelcomeScreenProps
         }
     }, [conversations]);
 
-    // Handle Add Contact navigation
+    // Handle Add Contact modal
     const handleAddContactClick = useCallback(() => {
-        router.visit('/contacts/add', {
+        setIsAddContactModalOpen(true);
+    }, []);
+
+    // Handle modal close
+    const handleCloseAddContactModal = useCallback(() => {
+        setIsAddContactModalOpen(false);
+    }, []);
+
+    // Handle contact add success
+    const handleContactAddSuccess = useCallback(() => {
+        // Reload conversations by navigating back to chat index
+        router.visit('/chat', {
             preserveScroll: true,
-            preserveState: true,
+            preserveState: false,
         });
     }, []);
     const actionCards = [
@@ -72,16 +87,16 @@ export default function WelcomeScreen({ conversations = [] }: WelcomeScreenProps
         <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.5 }}
             className="flex flex-col items-center justify-center min-h-screen bg-[#0b141a] px-4 relative"
         >
             {/* Main Content Container */}
             <div className="flex-1 flex flex-col items-center justify-center w-full max-w-2xl">
                 {/* Header Section */}
                 <motion.div
-                    initial={{ opacity: 0, y: -20 }}
+                    initial={{ opacity: 0, y: -30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1, duration: 0.5 }}
+                    transition={{ delay: 0.1, duration: 0.6 }}
                     className="text-center mb-16"
                 >
                     <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
@@ -94,19 +109,17 @@ export default function WelcomeScreen({ conversations = [] }: WelcomeScreenProps
 
                 {/* Action Cards Grid */}
                 <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.5 }}
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="visible"
                     className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mb-16"
                 >
-                    {actionCards.map((card, index) => {
+                    {actionCards.map((card) => {
                         const IconComponent = card.icon;
                         return (
                             <motion.button
                                 key={card.id}
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: 0.3 + index * 0.1 }}
+                                variants={itemVariants}
                                 whileHover={{ scale: 1.08, y: -8 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={() => {
@@ -139,7 +152,7 @@ export default function WelcomeScreen({ conversations = [] }: WelcomeScreenProps
                 <motion.div
                     initial={{ opacity: 0, scaleX: 0 }}
                     animate={{ opacity: 1, scaleX: 1 }}
-                    transition={{ delay: 0.5, duration: 0.6 }}
+                    transition={{ delay: 0.6, duration: 0.6 }}
                     className="w-full h-px bg-gradient-to-r from-transparent via-[#2a3a42] to-transparent mb-8"
                 />
 
@@ -147,7 +160,7 @@ export default function WelcomeScreen({ conversations = [] }: WelcomeScreenProps
                 <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.6 }}
+                    transition={{ delay: 0.7, duration: 0.5 }}
                     className="text-gray-500 text-xs md:text-sm text-center max-w-md"
                 >
                 </motion.p>
@@ -157,12 +170,19 @@ export default function WelcomeScreen({ conversations = [] }: WelcomeScreenProps
             <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
+                transition={{ delay: 0.8, duration: 0.5 }}
                 className="flex items-center justify-center gap-2 text-gray-600 text-xs pb-6"
             >
                 <Lock className="w-3.5 h-3.5 text-[#00a884]" />
                 <span>Pesan Anda terenkripsi secara end-to-end</span>
             </motion.div>
+
+            {/* Add Contact Modal */}
+            <AddContactModal 
+                isOpen={isAddContactModalOpen}
+                onClose={handleCloseAddContactModal}
+                onSuccess={handleContactAddSuccess}
+            />
         </motion.div>
     );
 }

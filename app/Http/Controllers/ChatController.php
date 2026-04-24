@@ -71,6 +71,17 @@ class ChatController extends Controller
             // Get conversation members with online status from cache
             // Pass current user to check blocking relationships
             $conversation->users = $userListService->getConversationMembers($conversation, withStatus: true, currentUser: $user);
+            
+            // For 1-on-1 conversations, set the other_user explicitly for resource transformation
+            if (!$conversation->is_group && $conversation->users) {
+                $otherUserData = collect($conversation->users)->firstWhere('id', '!=', $user->id);
+                if ($otherUserData) {
+                    // Create a User model instance from the cached data to ensure proper resource transformation
+                    $otherUser = new User((array) $otherUserData);
+                    $conversation->setRelation('other_user', $otherUser);
+                }
+            }
+            
             return $conversation;
         });
 
