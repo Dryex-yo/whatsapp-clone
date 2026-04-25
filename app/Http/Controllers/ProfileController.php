@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Services\ImageCompressionService;
+use App\Events\UpdateUserProfile;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,7 +37,9 @@ class ProfileController extends Controller
         // Handle avatar upload and compression
         if ($request->hasFile('avatar')) {
             // Delete old avatar if exists
-            if ($request->user()->avatar) {
+            if ($request->user()->profile_photo_path) {
+                Storage::disk('public')->delete($request->user()->profile_photo_path);
+            } elseif ($request->user()->avatar) {
                 Storage::disk('public')->delete($request->user()->avatar);
             }
 
@@ -49,6 +52,8 @@ class ProfileController extends Controller
 
             // Store the compressed avatar
             $path = $compressedFile->store('avatars', 'public');
+            // Store in both profile_photo_path (primary) and avatar (backward compat)
+            $data['profile_photo_path'] = $path;
             $data['avatar'] = $path;
         }
 
@@ -59,6 +64,10 @@ class ProfileController extends Controller
         }
 
         $request->user()->save();
+
+        // Broadcast profile update to all contacts via WebSocket
+        // This ensures real-time synchronization across all user devices/tabs
+        UpdateUserProfile::dispatch($request->user());
 
         // Return Inertia response for React apps
         if ($request->wantsJson() || $request->isXmlHttpRequest()) {

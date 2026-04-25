@@ -27,11 +27,13 @@ export default function UpdateProfileSettingsForm({
     const { data, setData, post, errors, processing, recentlySuccessful, reset } =
         useForm<{
             name: string;
+            phone: string;
             bio: string;
             avatar: File | null;
             last_seen_privacy: PrivacyLevel;
         }>({
             name: user.name || '',
+            phone: user.phone || '',
             bio: user.bio || '',
             avatar: null as File | null,
             last_seen_privacy: (user.last_seen_privacy || 'everyone') as PrivacyLevel,
@@ -79,6 +81,7 @@ export default function UpdateProfileSettingsForm({
 
         const formData = new FormData();
         formData.append('name', data.name);
+        formData.append('phone', data.phone);
         formData.append('bio', data.bio);
         formData.append('last_seen_privacy', data.last_seen_privacy);
         if (data.avatar) {
@@ -176,6 +179,23 @@ export default function UpdateProfileSettingsForm({
                     />
 
                     <InputError className="mt-2" message={errors.name} />
+                </div>
+
+                {/* Phone Number */}
+                <div>
+                    <InputLabel htmlFor="phone" value="Phone Number" />
+
+                    <TextInput
+                        id="phone"
+                        type="tel"
+                        className="mt-1 block w-full"
+                        value={data.phone}
+                        onChange={(e) => setData('phone', e.target.value)}
+                        placeholder="e.g., +1 (555) 000-1234"
+                        autoComplete="tel"
+                    />
+
+                    <InputError className="mt-2" message={errors.phone} />
                 </div>
 
                 {/* Bio/Status */}

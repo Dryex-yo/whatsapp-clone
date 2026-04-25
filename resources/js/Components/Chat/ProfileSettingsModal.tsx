@@ -73,10 +73,10 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                 <div className="flex justify-center">
                     <motion.div
                         whileHover={{ scale: 1.05 }}
-                        className="w-24 h-24 rounded-full overflow-hidden border-4 border-[#005c4b]"
+                        className="w-24 h-24 rounded-full overflow-hidden border-4 border-[#005c4b] shadow-lg"
                     >
                         <img
-                            src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}`}
+                            src={user.profile_photo_url || `https://ui-avatars.com/api/?name=${user.name}`}
                             alt={user.name}
                             className="w-full h-full object-cover"
                         />
@@ -96,10 +96,20 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                     <p className="text-sm text-gray-400">
                         {user.email}
                     </p>
+                    {user.phone && (
+                        <p className="text-sm text-gray-400">
+                            📞 {user.phone}
+                        </p>
+                    )}
+                    {user.bio || user.about ? (
+                        <p className="text-xs text-gray-500 italic px-2 py-1 bg-[#202c33] rounded">
+                            "{user.bio || user.about}"
+                        </p>
+                    ) : null}
                     <motion.p
                         animate={{ opacity: [0.6, 1] }}
                         transition={{ repeat: Infinity, duration: 2 }}
-                        className="text-xs text-[#005c4b]"
+                        className="text-xs text-[#00a884] pt-1"
                     >
                         ● Online
                     </motion.p>

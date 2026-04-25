@@ -45,7 +45,12 @@ class UserResource extends JsonResource
             'email' => $this->email,
             'phone' => $this->phone,
             'avatar' => $this->avatar,
+            'bio' => $this->bio, // User status message
+            'about' => $this->bio, // Alias for bio
+            'profile_photo_path' => $this->profile_photo_path,
+            'profile_photo_url' => $this->profile_photo_url, // Always has value (default or uploaded)
             'last_seen' => $this->last_seen,
+            'last_seen_privacy' => $this->last_seen_privacy,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             // Computed properties

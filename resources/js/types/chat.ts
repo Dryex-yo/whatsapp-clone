@@ -7,9 +7,13 @@ export interface User {
     email: string;
     phone?: string;
     avatar?: string;
-    bio?: string;
+    bio?: string; // User status/about message
+    about?: string; // Alias for bio
+    profile_photo_url: string; // Always has value (default UI-Avatar or uploaded)
+    profile_photo_path?: string;
     last_seen?: string; // ISO 8601 timestamp
     last_seen_privacy?: 'everyone' | 'contacts' | 'nobody';
+    is_online?: boolean;
     created_at?: string;
     updated_at?: string;
 }

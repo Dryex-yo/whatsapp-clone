@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Search, MapPin, Mail, Phone, Plus, AlertCircle, Loader2, Users, X } from 'lucide-react';
 import { scaleInVariants, slideUpVariants, containerVariants, itemVariants } from '@/utils/animationVariants';
 import type { User } from '@/types/chat';
+import axios from 'axios';
 
 interface SearchResult {
     id: number;
@@ -203,28 +204,26 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
      * Search for users by email or phone
      */
     const searchUsers = useCallback(async (query: string) => {
+        if (!query) return;
+
         setIsManualSearching(true);
+        setManualError(null);
+
         try {
-            const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
+            // Gunakan axios, bukan fetch, agar otomatis membawa session/cookie
+            const response = await axios.get('/users/search', {
+                params: { q: query }
             });
 
-            if (!response.ok) {
-                throw new Error('Search failed');
-            }
+            // Laravel biasanya mengirim data dalam response.data
+            const results = response.data;
+            setManualSearchResults(results);
 
-            const data = await response.json();
-            setManualSearchResults(data.results || []);
-
-            if (data.results.length === 0) {
+            if (results.length === 0) {
                 setManualError('No users found matching your search');
             }
-        } catch (err) {
-            console.error('Search error:', err);
+        } catch (err: any) {
+            console.error('Search error:', err.response || err);
             setManualError('Failed to search users. Please try again.');
             setManualSearchResults([]);
         } finally {

@@ -51,8 +51,8 @@ class ChatController extends Controller
         // Eager load all relationships to prevent N+1 queries
         $conversations = $user->conversations()
             ->with([
-                'lastMessage.user:id,name,avatar',      // Load only needed columns for performance
-                'users:id,name,avatar,phone,bio',       // Avoid loading password and sensitive fields
+                'lastMessage.user:id,name,avatar,profile_photo_path,phone,bio',      // Load profile fields for performance
+                'users:id,name,avatar,profile_photo_path,phone,bio',                // Include profile fields for avatars
             ])
             ->withCount(['messages as unreadMessages' => function ($query) use ($user) {
                 // Count messages that haven't been read by this user
@@ -121,7 +121,7 @@ class ChatController extends Controller
         // Uses new composite indexes (conversation_id, created_at) for optimal pagination
         $messages = $conversation->messages()
             ->with([
-                'user:id,name,avatar,phone,bio',           // Avoid N+1 on message sender
+                'user:id,name,avatar,profile_photo_path,phone,bio',           // Include profile fields
                 'attachments:id,message_id,file_name,path,mime_type,type,size'    // Avoid N+1 on attachments
             ])
             ->orderBy('created_at', 'desc')
@@ -134,8 +134,8 @@ class ChatController extends Controller
         $userListService = app(UserListCacheService::class);
         $conversations = $user->conversations()
             ->with([
-                'lastMessage.user:id,name,avatar',        // Avoid N+1 on last message sender
-                'users:id,name,avatar,phone,bio'          // Avoid N+1 on conversation members
+                'lastMessage.user:id,name,avatar,profile_photo_path,phone,bio',        // Include profile fields
+                'users:id,name,avatar,profile_photo_path,phone,bio'          // Include profile fields
             ])
             ->withCount(['messages as unreadMessages' => function ($query) use ($user) {
                 $query->where('user_id', '!=', $user->id)

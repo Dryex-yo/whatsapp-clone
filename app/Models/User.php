@@ -20,6 +20,7 @@ use Carbon\Carbon;
  * @property string|null $bio
  * @property string $email
  * @property string|null $avatar
+ * @property string|null $profile_photo_path
  * @property string|null $phone
  * @property Carbon|null $last_seen
  * @property string $last_seen_privacy
@@ -43,6 +44,7 @@ class User extends Authenticatable
         'email',
         'password',
         'avatar',
+        'profile_photo_path',
         'phone',
         'last_seen',
         'last_seen_privacy',
@@ -60,6 +62,10 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+    ];
+
+    protected $appends = [
+        'profile_photo_url',
     ];
 
     /**
@@ -253,5 +259,14 @@ class User extends Authenticatable
         }
 
         return $this->last_seen->diffForHumans();
+    }
+
+    public function getProfilePhotoUrlAttribute()
+    {
+        // Use profile_photo_path (primary), fall back to avatar (for backward compat), then UI-Avatar
+        $path = $this->profile_photo_path ?? $this->avatar;
+        return $path 
+            ? asset('storage/' . $path) 
+            : 'https://ui-avatars.com/api/?name=' . urlencode($this->name);
     }
 }

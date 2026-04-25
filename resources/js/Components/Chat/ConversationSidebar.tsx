@@ -51,7 +51,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
                 isActive ? 'ring-[#00a884]/50' : 'ring-gray-700'
             }`}>
                 <img 
-                    src={conversation.avatar || conversation.other_user?.avatar || `https://ui-avatars.com/api/?name=${displayName}`}
+                    src={conversation.avatar || conversation.other_user?.profile_photo_url || `https://ui-avatars.com/api/?name=${displayName}`}
                     alt={displayName}
                     className="w-full h-full object-cover"
                 />
@@ -193,7 +193,7 @@ export const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                     title="Profile settings"
                 >
                     <img 
-                        src={currentUser.avatar || `https://ui-avatars.com/api/?name=${currentUser.name}`}
+                        src={currentUser.profile_photo_url || `https://ui-avatars.com/api/?name=${currentUser.name}`}
                         alt={currentUser.name}
                         className="w-full h-full object-cover"
                     />
