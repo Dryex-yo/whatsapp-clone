@@ -86,6 +86,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/users/search', [ContactController::class, 'search'])
         ->name('users.search');
 
+    Route::post('/users/find-by-email', [ContactController::class, 'findByEmail'])
+        ->name('users.findByEmail');
+
     Route::post('/contacts/add', [ContactController::class, 'storeContacts'])
         ->name('contacts.add');
 
@@ -95,6 +98,9 @@ Route::middleware('auth:sanctum')->group(function () {
      */
     Route::post('/users/nearby', [NearbyUserController::class, 'getNearby'])
         ->name('users.nearby');
+
+    Route::put('/user/location', [NearbyUserController::class, 'updateLocation'])
+        ->name('user.location.update');
 
     /**
      * Search Routes

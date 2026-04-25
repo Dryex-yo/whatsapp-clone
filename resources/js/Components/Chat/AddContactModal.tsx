@@ -120,6 +120,26 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
      */
     const fetchNearbyUsers = useCallback(async (lat: number, lng: number) => {
         try {
+            // First, update the user's location on the server
+            // This ensures the current user appears in other users' nearby searches
+            const updateResponse = await fetch('/api/user/location', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    latitude: lat,
+                    longitude: lng,
+                }),
+            });
+
+            if (!updateResponse.ok) {
+                console.warn('Failed to update user location on server');
+                // Continue anyway - we can still fetch nearby users
+            }
+
+            // Now fetch nearby users
             const response = await fetch('/api/users/nearby', {
                 method: 'POST',
                 headers: {

@@ -29,38 +29,92 @@ class ContactController extends Controller
 
     /**
      * Search users by phone number or email
+     * 
+     * Uses case-insensitive search for email to prevent "not found" errors
+     * when users register with capital letters.
+     * Returns all necessary fields for frontend display (name, email, avatar).
+     * 
+     * @param Request $request
+     * @return JsonResponse
      */
     public function search(Request $request): JsonResponse
     {
-        $query = $request->query('q', '');
+        $query = trim($request->query('q', ''));
 
         if (strlen($query) < 3) {
             return response()->json(['results' => []]);
         }
 
         $currentUserId = Auth::id();
+        $lowerQuery = strtolower($query);
 
-        // Search for users by email or phone
+        // Search for users by email (case-insensitive), phone, or name
         $results = User::where('id', '!=', $currentUserId)
-            ->where(function ($q) use ($query) {
-                $q->where('email', 'like', '%' . $query . '%')
+            ->where(function ($q) use ($query, $lowerQuery) {
+                // Case-insensitive email search using LOWER()
+                $q->whereRaw('LOWER(email) LIKE ?', ['%' . $lowerQuery . '%'])
                   ->orWhere('phone', 'like', '%' . $query . '%')
                   ->orWhere('name', 'like', '%' . $query . '%');
             })
-            ->select('id', 'name', 'email', 'phone', 'avatar')
+            ->select('id', 'name', 'email', 'phone', 'avatar', 'bio')
             ->limit(20)
             ->get()
             ->map(function ($user) {
                 return [
                     'id' => $user->id,
-                    'name' => $user->name,
+                    'name' => $user->name ?? 'Unknown User',
                     'email' => $user->email,
                     'phone' => $user->phone,
                     'avatar' => $user->avatar,
+                    'bio' => $user->bio,
                 ];
             });
 
         return response()->json(['results' => $results]);
+    }
+
+    /**
+     * Find a user by exact email address
+     * 
+     * Used for direct user lookup (e.g., starting a chat by email)
+     * Ensures exact match after trimming and lowercasing
+     * 
+     * @param Request $request
+     * @return JsonResponse
+     */
+    public function findByEmail(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $currentUserId = Auth::id();
+        $email = trim(strtolower($request->input('email')));
+
+        $user = User::where('id', '!=', $currentUserId)
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->select('id', 'name', 'email', 'phone', 'avatar', 'bio', 'last_seen')
+            ->first();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not found',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name ?? 'Unknown User',
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'avatar' => $user->avatar,
+                'bio' => $user->bio,
+                'last_seen' => $user->last_seen,
+            ],
+        ], 200);
     }
 
     /**
