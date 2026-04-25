@@ -600,7 +600,7 @@ Proyek ini dilisensikan di bawah [MIT License](LICENSE) - lihat file LICENSE unt
 
 ## 👨‍💼 Author & Credits
 
-Dibuat dengan ❤️ oleh **Your Name**
+Dibuat dengan ❤️ oleh Dery Supriyadi (Dryex)
 
 ### Tech Stack Credits
 - [Laravel](https://laravel.com) - Backend framework
