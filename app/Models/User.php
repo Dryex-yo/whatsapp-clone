@@ -45,6 +45,7 @@ class User extends Authenticatable
         'password',
         'avatar',
         'profile_photo_path',
+        'about',
         'phone',
         'last_seen',
         'last_seen_privacy',
