@@ -111,7 +111,7 @@ class ChatController extends Controller
 
         // Authorize AND eagerly load users in one operation
         // This prevents the "load after check" anti-pattern that causes duplicate queries
-        $conversation->load('users');
+        $conversation->load('users:id,name,email,avatar,profile_photo_path,phone,bio,about');
         abort_unless($conversation->users->contains($user->id), 403);
 
         // Dispatch ConversationOpened event to mark received messages as delivered
@@ -121,7 +121,7 @@ class ChatController extends Controller
         // Uses new composite indexes (conversation_id, created_at) for optimal pagination
         $messages = $conversation->messages()
             ->with([
-                'user:id,name,avatar,profile_photo_path,phone,bio',           // Include profile fields
+                'user:id,name,email,avatar,profile_photo_path,phone,bio,about',           // Include profile fields
                 'attachments:id,message_id,file_name,path,mime_type,type,size'    // Avoid N+1 on attachments
             ])
             ->orderBy('created_at', 'desc')
@@ -134,8 +134,8 @@ class ChatController extends Controller
         $userListService = app(UserListCacheService::class);
         $conversations = $user->conversations()
             ->with([
-                'lastMessage.user:id,name,avatar,profile_photo_path,phone,bio',        // Include profile fields
-                'users:id,name,avatar,profile_photo_path,phone,bio'          // Include profile fields
+                'lastMessage.user:id,name,email,avatar,profile_photo_path,phone,bio,about',        // Include profile fields
+                'users:id,name,email,avatar,profile_photo_path,phone,bio,about'          // Include profile fields
             ])
             ->withCount(['messages as unreadMessages' => function ($query) use ($user) {
                 $query->where('user_id', '!=', $user->id)
@@ -148,12 +148,33 @@ class ChatController extends Controller
         // Enhance conversations with cached online status
         $conversations = $conversations->map(function ($conv) use ($userListService, $user) {
             $conv->users = $userListService->getConversationMembers($conv, withStatus: true, currentUser: $user);
+            
+            // For 1-on-1 conversations, set the other_user explicitly for resource transformation
+            if (!$conv->is_group && $conv->users) {
+                $otherUserData = collect($conv->users)->firstWhere('id', '!=', $user->id);
+                if ($otherUserData) {
+                    // Create a User model instance from the cached data to ensure proper resource transformation
+                    $otherUser = new User((array) $otherUserData);
+                    $conv->setRelation('other_user', $otherUser);
+                }
+            }
+            
             return $conv;
         });
 
         // Enhance active conversation with cached online status
         // Reuse already-loaded conversation.users instead of calling load() again
         $conversation->users = $userListService->getConversationMembers($conversation, withStatus: true, currentUser: $user);
+        
+        // For 1-on-1 conversations, set the other_user explicitly for resource transformation
+        if (!$conversation->is_group && $conversation->users) {
+            $otherUserData = collect($conversation->users)->firstWhere('id', '!=', $user->id);
+            if ($otherUserData) {
+                // Create a User model instance from the cached data to ensure proper resource transformation
+                $otherUser = new User((array) $otherUserData);
+                $conversation->setRelation('other_user', $otherUser);
+            }
+        }
 
         return Inertia::render('Chat/Show', [
             'currentUser' => new UserResource($user),

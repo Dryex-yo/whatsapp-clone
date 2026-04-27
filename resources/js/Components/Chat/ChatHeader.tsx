@@ -28,19 +28,32 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     onMobileBackClick,
 }) => {
     // Ensure users is an array before calling find
-    const usersArray = Array.isArray(conversation.users) ? conversation.users : [];
+    const usersArray = Array.isArray(conversation?.users) ? conversation.users : [];
     
     // For groups, use group name; for 1-on-1, use other user's name
-    const isGroup = conversation.is_group;
-    const otherUser = usersArray.find((u: User) => u.id !== currentUser.id) || conversation.other_user;
-    const displayName = conversation.name || otherUser?.name || 'Unknown';
+    // Hierarchy: conversation.other_user > found in usersArray > Unknown
+    const isGroup = conversation?.is_group || false;
+    
+    let otherUser = conversation?.other_user;
+    if (!otherUser && !isGroup) {
+        // Try to find the other user in the users array
+        otherUser = usersArray.find((u: User) => u && u.id !== currentUser?.id);
+    }
+    
+    const displayName = conversation?.name || otherUser?.name || 'Unknown';
+    
+    // Ensure otherUser has essential profile fields (fallback to defaults)
+    const safeOtherUser = otherUser ? {
+        ...otherUser,
+        profile_photo_url: otherUser.profile_photo_url || otherUser.avatar || `https://ui-avatars.com/api/?name=${displayName}`,
+    } : null;
     
     // Check if user is online using presence data
-    const isUserOnline = otherUser && otherUser.id in onlineUsers;
+    const isUserOnline = safeOtherUser && safeOtherUser.id in onlineUsers;
     
     // Fallback: check last_seen if presence not available
-    const isOnlineByLastSeen = otherUser?.last_seen && 
-        new Date(otherUser.last_seen).getTime() > Date.now() - 5 * 60 * 1000;
+    const isOnlineByLastSeen = safeOtherUser?.last_seen && 
+        new Date(safeOtherUser.last_seen).getTime() > Date.now() - 5 * 60 * 1000;
     
     const isOnline = isUserOnline || isOnlineByLastSeen;
 
@@ -48,17 +61,17 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     const typingUsersList = Object.entries(typingUsers)
         .filter(([userId]) => {
             const id = parseInt(userId);
-            return id !== currentUser.id && isGroup ? true : id === otherUser?.id;
+            return id !== currentUser?.id && isGroup ? true : id === safeOtherUser?.id;
         })
         .map(([, name]) => name);
     
-    const isOtherUserTyping = !isGroup && otherUser && otherUser.id in typingUsers;
+    const isOtherUserTyping = !isGroup && safeOtherUser && safeOtherUser.id in typingUsers;
     const isAnyoneTyping = isGroup && typingUsersList.length > 0;
 
     // Get group avatar or user avatar
     const avatarUrl = isGroup 
-        ? conversation.avatar || `https://ui-avatars.com/api/?name=${displayName}`
-        : otherUser?.avatar || `https://ui-avatars.com/api/?name=${displayName}`;
+        ? conversation?.avatar || `https://ui-avatars.com/api/?name=${displayName}`
+        : safeOtherUser?.profile_photo_url || `https://ui-avatars.com/api/?name=${displayName}`;
 
     return (
         <motion.header
@@ -164,7 +177,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                                         Online
                                     </span>
                                 ) : (
-                                    `Last seen ${otherUser?.last_seen ? new Date(otherUser.last_seen).toLocaleTimeString() : 'recently'}`
+                                    `Last seen ${safeOtherUser?.last_seen ? new Date(safeOtherUser.last_seen).toLocaleTimeString() : 'recently'}`
                                 )}
                             </>
                         )}

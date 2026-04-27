@@ -51,6 +51,7 @@ export default function ChatIndexPage() {
     // State management
     const [filteredConversations, setFilteredConversations] = useState<Conversation[]>(conversationsArray);
     const [activeConversationId, setActiveConversationId] = useState<number | undefined>(urlConversationId);
+    const [syncedConversations, setSyncedConversations] = useState<Conversation[]>(conversationsArray);
     const [activeModal, setActiveModal] = useState<ActiveModalType>(null);
     const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
     const [isWalletOpen, setIsWalletOpen] = useState<boolean>(false);
@@ -60,7 +61,22 @@ export default function ChatIndexPage() {
     const [isMobileSidebarVisible, setIsMobileSidebarVisible] = useState(true);
 
     // Sync conversations when props change (e.g., after adding a contact)
+    // Preserve other_user data to prevent "Unknown" display
     useEffect(() => {
+        setSyncedConversations(prev => 
+            conversationsArray.map(newConv => {
+                const existingConv = prev.find(c => c.id === newConv.id);
+                if (existingConv && existingConv.other_user) {
+                    // Preserve other_user if it exists
+                    return {
+                        ...newConv,
+                        other_user: newConv.other_user || existingConv.other_user,
+                        users: newConv.users || existingConv.users,
+                    };
+                }
+                return newConv;
+            })
+        );
         setFilteredConversations(conversationsArray);
     }, [conversationsArray]);
 

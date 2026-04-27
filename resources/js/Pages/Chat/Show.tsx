@@ -73,6 +73,26 @@ export default function ChatShowPage() {
     // Mobile state management
     const [isMobileSidebarVisible, setIsMobileSidebarVisible] = useState(true);
 
+    // Store active conversation with full user data in state
+    // This ensures the conversation data stays in sync and doesn't reset to 'Unknown'
+    const [syncedConversation, setSyncedConversation] = useState<Conversation>(activeConversation);
+
+    // Update synced conversation when props change (e.g., when other user updates profile)
+    useEffect(() => {
+        if (activeConversation && activeConversation.id === syncedConversation?.id) {
+            // Merge new data with existing state to preserve consistency
+            setSyncedConversation(prev => ({
+                ...prev,
+                ...activeConversation,
+                users: activeConversation.users || prev.users,
+                other_user: activeConversation.other_user || prev.other_user,
+            }));
+        } else {
+            // New conversation selected
+            setSyncedConversation(activeConversation);
+        }
+    }, [activeConversation?.id, activeConversation?.other_user?.id]);
+
     // Setup presence tracking for online users
     const { onlineUsers } = usePresence(activeConversation?.id, currentUser);
 
@@ -320,7 +340,7 @@ export default function ChatShowPage() {
                             )}
 
                             <ChatWindow
-                                conversation={activeConversation}
+                                conversation={syncedConversation}
                                 currentUser={currentUser}
                                 messages={messages}
                                 isLoading={isSending}
